@@ -343,6 +343,11 @@ static struct ShaderProgram* gfx_opengl_create_and_load_new_shader(uint64_t shad
         append_line(fs_buf, &fs_len, "texel.a *= floor(clamp(random(vec3(floor(gl_FragCoord.xy * (240.0 / float(window_height))), float(frame_count))) + texel.a, 0.0, 1.0));");
     }
 
+    if(cc_features.opt_grayscale) {
+        append_line(fs_buf, &fs_len, "float light = (texel.r + texel.g + texel.b) / 7.0;");
+        append_line(fs_buf, &fs_len, "texel.rgb = vec3(light, light, light);");
+    }
+
     if (cc_features.opt_alpha) {
         if (cc_features.opt_alpha_threshold) {
             append_line(fs_buf, &fs_len, "if (texel.a < 8.0 / 256.0) discard;");
@@ -391,9 +396,9 @@ static struct ShaderProgram* gfx_opengl_create_and_load_new_shader(uint64_t shad
         GLint max_length = 0;
         glGetShaderiv(fragment_shader, GL_INFO_LOG_LENGTH, &max_length);
         char error_log[1024];
-        //fprintf(stderr, "Fragment shader compilation failed\n");
+        fprintf(stderr, "Fragment shader compilation failed\n");
         glGetShaderInfoLog(fragment_shader, max_length, &max_length, &error_log[0]);
-        //fprintf(stderr, "%s\n", &error_log[0]);
+        fprintf(stderr, "%s\n", &error_log[0]);
         abort();
     }
 
