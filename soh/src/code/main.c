@@ -85,6 +85,7 @@ void Main(void* arg) {
     PreNmiBuff_Init(gAppNmiBufferPtr);
     Fault_Init();
     SysCfb_Init(0);
+    Heaps_Alloc();
     sysHeap = gSystemHeap;
     fb = SysCfb_GetFbPtr(0);
     gSystemHeapSize = 1024 * 1024 * 4;
@@ -153,4 +154,6 @@ void Main(void* arg) {
     osDestroyThread(&sGraphThread);
     func_800FBFD8();
     osSyncPrintf("mainproc 実行終了\n"); // "End of execution"
+
+    Heaps_Free();
 }
