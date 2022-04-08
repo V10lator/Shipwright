@@ -380,6 +380,11 @@ namespace SohImGui {
                     needs_save = true;
                 }
 
+                if (ImGui::Checkbox("Enable 3D Dropped items", &Game::Settings.enhancements.newdrops)) {
+                    CVar_SetS32("gNewDrops", Game::Settings.enhancements.newdrops);
+                    needs_save = true;
+                }
+
                 ImGui::Text("Graphics");
                 ImGui::Separator();
 

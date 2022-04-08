@@ -65,7 +65,11 @@ namespace Game {
         CVar_SetS32(const_cast<char*>("gMinimalUI"), Settings.enhancements.minimal_ui);
 
         Settings.enhancements.newdrops = stob(Conf[EnhancementSection]["newdrops"]);
+<<<<<<< Updated upstream
         CVar_SetS32(const_cast<char*>("gNewDrops"), Settings.enhancements.newdrops);
+=======
+        CVar_SetS32("gNewDrops", Settings.enhancements.newdrops);
+>>>>>>> Stashed changes
 
         // Audio
         Settings.audio.master = Ship::stof(Conf[AudioSection]["master"]);
