@@ -133,13 +133,13 @@ namespace Ship {
 					if (kStatus.classic.hold & WPAD_CLASSIC_BUTTON_LEFT)
 						dwPressedButtons |= BTN_DLEFT;
 
-					if (kStatus.classic.rightStick.x > 0.2f)
+					if (kStatus.classic.hold & WPAD_CLASSIC_STICK_R_EMULATION_RIGHT)
 						dwPressedButtons |= BTN_CRIGHT;
-					else if (kStatus.classic.rightStick.x < 0.2f)
+					else if (kStatus.classic.hold & WPAD_CLASSIC_STICK_R_EMULATION_LEFT)
 						dwPressedButtons |= BTN_CLEFT;
-					if (kStatus.classic.rightStick.y > 0.2f)
+					if (kStatus.classic.hold & WPAD_CLASSIC_STICK_R_EMULATION_UP)
 						dwPressedButtons |= BTN_CUP;
-					else if (kStatus.classic.rightStick.y < 0.2f)
+					else if (kStatus.classic.hold & WPAD_CLASSIC_STICK_R_EMULATION_DOWN)
 						dwPressedButtons |= BTN_CDOWN;
 
 					wStickX += kStatus.classic.leftStick.x * 84;
