@@ -505,41 +505,24 @@ static int generatePixelShader(GX2PixelShader *psh, struct CCFeatures *cc_featur
     }
 
     // regs
+    const uint32_t num_ps_inputs = 5 + cc_features->num_inputs;
+
     psh->regs.sq_pgm_resources_ps = 17; // num_gprs
     psh->regs.sq_pgm_exports_ps = 2; // export_mode
-    psh->regs.spi_ps_in_control_0 = 13 // num_interp
+    psh->regs.spi_ps_in_control_0 = (num_ps_inputs + 1) // num_interp
         | (1 << 8) // position_ena
         | (1 << 26) // persp_gradient_ena
         | (1 << 28); // baryc_sample_cntl
-    
-    psh->regs.num_spi_ps_input_cntl = 13;
 
-    // fragCoord R0
+    psh->regs.num_spi_ps_input_cntl = num_ps_inputs + 1;
+
+    // frag pos
     psh->regs.spi_ps_input_cntls[0] = 0 | (1 << 8);
-    // vTexCoord0 R1
-    psh->regs.spi_ps_input_cntls[1] = 0 | (1 << 8);
-    // aTexClamp0 R2
-    psh->regs.spi_ps_input_cntls[2] = 1 | (1 << 8);
-    // vTexCoord1 R3
-    psh->regs.spi_ps_input_cntls[3] = 2 | (1 << 8);
-    // aTexClamp1 R4
-    psh->regs.spi_ps_input_cntls[4] = 3 | (1 << 8);
-    // vFog R5
-    psh->regs.spi_ps_input_cntls[5] = 4 | (1 << 8);
-    // vInput1 R6
-    psh->regs.spi_ps_input_cntls[6] = 5 | (1 << 8);
-    // vInput2 R7
-    psh->regs.spi_ps_input_cntls[7] = 6 | (1 << 8);
-    // vInput3 R8
-    psh->regs.spi_ps_input_cntls[8] = 7 | (1 << 8);
-    // vInput4 R9
-    psh->regs.spi_ps_input_cntls[9] = 8 | (1 << 8);
-    // vInput5 R10
-    psh->regs.spi_ps_input_cntls[10] = 9 | (1 << 8);
-    // vInput6 R11
-    psh->regs.spi_ps_input_cntls[11] = 10 | (1 << 8);
-    // vInput7 R12
-    psh->regs.spi_ps_input_cntls[12] = 11 | (1 << 8);
+
+    // inputs
+    for (int i = 0; i < num_ps_inputs; i++) {
+        psh->regs.spi_ps_input_cntls[i + 1] = i | (1 << 8);
+    }
 
     psh->regs.cb_shader_mask = 0xf; // output0_enable
     psh->regs.cb_shader_control = 1; // rt0_enable
@@ -562,38 +545,6 @@ static int generatePixelShader(GX2PixelShader *psh, struct CCFeatures *cc_featur
 
     return 0;
 }
-#undef ADD_INSTR
-
-static const uint64_t vs_program[] = {
-    CALL_FS NO_BARRIER,
-    // aVtxPos
-    EXP_DONE(POS0, _R1, _x, _y, _z, _w),
-    // aTexCoord0
-    EXP(PARAM0, _R2, _x, _y, _z, _w) NO_BARRIER,
-    // aTexClamp0
-    EXP(PARAM1, _R3, _x, _y, _z, _w) NO_BARRIER,
-    // aTexCoord1
-    EXP(PARAM2, _R4, _x, _y, _z, _w) NO_BARRIER,
-    // aTexClamp1
-    EXP(PARAM3, _R5, _x, _y, _z, _w) NO_BARRIER,
-    // aFog
-    EXP(PARAM4, _R6, _x, _y, _z, _w) NO_BARRIER,
-    // aInput1
-    EXP(PARAM5, _R7, _x, _y, _z, _w) NO_BARRIER,
-    // aInput2
-    EXP(PARAM6, _R8, _x, _y, _z, _w) NO_BARRIER,
-    // aInput3
-    EXP(PARAM7, _R9, _x, _y, _z, _w) NO_BARRIER,
-    // aInput4
-    EXP(PARAM8, _R10, _x, _y, _z, _w) NO_BARRIER,
-    // aInput5
-    EXP(PARAM9, _R11, _x, _y, _z, _w) NO_BARRIER,
-    // aInput6
-    EXP(PARAM10, _R12, _x, _y, _z, _w) NO_BARRIER,
-    // aInput7
-    (EXP_DONE(PARAM11, _R13, _x, _y, _z, _w) NO_BARRIER)
-    END_OF_PROGRAM,
-};
 
 static GX2AttribVar attribVars[] = {
     { "aVtxPos",    GX2_SHADER_VAR_TYPE_FLOAT4, 0, 0},
@@ -612,14 +563,44 @@ static GX2AttribVar attribVars[] = {
 };
 
 static int generateVertexShader(GX2VertexShader *vsh, struct CCFeatures *cc_features) {
-    (void) cc_features;
+    static const size_t max_program_buf_size = 16 * sizeof(uint64_t);
+    uint64_t *program_buf = memalign(GX2_SHADER_PROGRAM_ALIGNMENT, max_program_buf_size);
+    if (!program_buf) {
+        return -1;
+    }
+
+    const uint32_t num_ps_inputs = 5 + cc_features->num_inputs;
+
+    uint64_t *cur_buf = program_buf;
+
+    // aVtxPos
+    ADD_INSTR(
+        CALL_FS NO_BARRIER,
+        EXP_DONE(POS0, _R1, _x, _y, _z, _w),
+    );
+
+    // params
+    for (int i = 0; i < num_ps_inputs - 1; i++) {
+        ADD_INSTR(
+            EXP(PARAM(i), _R(i + 2), _x, _y, _z, _w) NO_BARRIER,
+        );
+    }
+
+    // last param
+    ADD_INSTR(
+        (EXP_DONE(PARAM(num_ps_inputs - 1), _R(num_ps_inputs + 1), _x, _y, _z, _w) NO_BARRIER)
+        END_OF_PROGRAM,
+    );
+
+    const uint32_t program_size = (uintptr_t) cur_buf - ((uintptr_t) program_buf);
+    assert(program_size <= max_program_buf_size);
 
     // regs
-    vsh->regs.sq_pgm_resources_vs = 14 // num_gprs
+    vsh->regs.sq_pgm_resources_vs = (num_ps_inputs + 2) // num_gprs
         | (1 << 8); // stack_size
 
     // num outputs minus 1
-    vsh->regs.spi_vs_out_config = (11 << 1);
+    vsh->regs.spi_vs_out_config = ((num_ps_inputs - 1) << 1);
 
     vsh->regs.num_spi_vs_out_id = 3;
     memset(vsh->regs.spi_vs_out_id, 0xff, sizeof(vsh->regs.spi_vs_out_id));
@@ -661,13 +642,8 @@ static int generateVertexShader(GX2VertexShader *vsh, struct CCFeatures *cc_feat
     vsh->regs.vgt_hos_reuse_depth = 16; // reuse_depth
 
     // program
-    vsh->size = sizeof(vs_program);
-    vsh->program = memalign(GX2_SHADER_PROGRAM_ALIGNMENT, vsh->size);
-    if (!vsh->program) {
-        return -1;
-    }
-
-    memcpy(vsh->program, vs_program, vsh->size);
+    vsh->program = program_buf;
+    vsh->size = program_size;
 
     vsh->mode = GX2_SHADER_MODE_UNIFORM_REGISTER;
 
@@ -677,6 +653,7 @@ static int generateVertexShader(GX2VertexShader *vsh, struct CCFeatures *cc_feat
 
     return 0;
 }
+#undef ADD_INSTR
 
 int gx2GenerateShaderGroup(struct ShaderGroup *group, struct CCFeatures *cc_features) {
     memset(group, 0, sizeof(struct ShaderGroup));
