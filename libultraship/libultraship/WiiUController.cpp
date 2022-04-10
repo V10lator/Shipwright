@@ -33,9 +33,9 @@ namespace Ship {
 				dwPressedButtons |= BTN_B;
 			if (status.hold & VPAD_BUTTON_ZL)
 				dwPressedButtons |= BTN_Z;
-			if (status.hold & VPAD_BUTTON_R)
+			if (status.hold & VPAD_BUTTON_ZR)
 				dwPressedButtons |= BTN_R;
-			if (status.hold & VPAD_BUTTON_L)
+			if (status.hold & VPAD_BUTTON_MINUS)
 				dwPressedButtons |= BTN_L;
 			if (status.hold & VPAD_BUTTON_PLUS)
 				dwPressedButtons |= BTN_START;
@@ -48,13 +48,13 @@ namespace Ship {
 			if (status.hold & VPAD_BUTTON_LEFT)
 				dwPressedButtons |= BTN_DLEFT;
 
-			if (status.hold & VPAD_STICK_R_EMULATION_RIGHT)
+			if (status.hold & VPAD_STICK_R_EMULATION_RIGHT || status.hold & VPAD_BUTTON_X)
 				dwPressedButtons |= BTN_CRIGHT;
-			else if (status.hold & VPAD_STICK_R_EMULATION_LEFT)
+			else if (status.hold & VPAD_STICK_R_EMULATION_LEFT || status.hold & VPAD_BUTTON_Y)
 				dwPressedButtons |= BTN_CLEFT;
-			if (status.hold & VPAD_STICK_R_EMULATION_UP)
+			if (status.hold & VPAD_STICK_R_EMULATION_UP || status.hold & VPAD_BUTTON_L)
 				dwPressedButtons |= BTN_CUP;
-			else if (status.hold & VPAD_STICK_R_EMULATION_DOWN)
+			else if (status.hold & VPAD_STICK_R_EMULATION_DOWN || status.hold & VPAD_BUTTON_R)
 				dwPressedButtons |= BTN_CDOWN;
 
 			wStickX = status.leftStick.x * 84;
