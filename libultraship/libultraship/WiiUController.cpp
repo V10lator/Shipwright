@@ -63,15 +63,15 @@ namespace Ship {
 
 		KPADStatus kStatus;
 		int32_t kProbe;
-		uint32_t kType;
+		WPADExtensionType kType;
 
 		for (int i = 0; i < 4; i++) {
-			kProbe = WPADProbe(i, &kType);
+			kProbe = WPADProbe((WPADChan) i, &kType);
 
 			if (kProbe)
 				continue;
 
-			KPADRead(i, &kStatus, 1);
+			KPADRead(WPADChan) i, &kStatus, 1);
 
 			switch (kType) {
 				case WPAD_EXT_PRO_CONTROLLER:
