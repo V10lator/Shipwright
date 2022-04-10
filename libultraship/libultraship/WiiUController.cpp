@@ -31,7 +31,7 @@ namespace Ship {
 				dwPressedButtons |= BTN_A;
 			if (status.hold & VPAD_BUTTON_B)
 				dwPressedButtons |= BTN_B;
-			if (status.hold & VPAD_BUTTON_ZR)
+			if (status.hold & VPAD_BUTTON_ZL)
 				dwPressedButtons |= BTN_Z;
 			if (status.hold & VPAD_BUTTON_R)
 				dwPressedButtons |= BTN_R;
@@ -81,7 +81,7 @@ namespace Ship {
 						dwPressedButtons |= BTN_A;
 					if (kStatus.pro.hold & WPAD_PRO_BUTTON_B)
 						dwPressedButtons |= BTN_B;
-					if (kStatus.pro.hold & WPAD_PRO_TRIGGER_ZR)
+					if (kStatus.pro.hold & WPAD_PRO_TRIGGER_ZL)
 						dwPressedButtons |= BTN_Z;
 					if (kStatus.pro.hold & WPAD_PRO_TRIGGER_R)
 						dwPressedButtons |= BTN_R;
@@ -116,7 +116,7 @@ namespace Ship {
 						dwPressedButtons |= BTN_A;
 					if (kStatus.classic.hold & WPAD_CLASSIC_BUTTON_B)
 						dwPressedButtons |= BTN_B;
-					if (kStatus.classic.hold & WPAD_CLASSIC_BUTTON_ZR)
+					if (kStatus.classic.hold & WPAD_CLASSIC_BUTTON_ZL)
 						dwPressedButtons |= BTN_Z;
 					if (kStatus.classic.hold & WPAD_CLASSIC_BUTTON_R)
 						dwPressedButtons |= BTN_R;
