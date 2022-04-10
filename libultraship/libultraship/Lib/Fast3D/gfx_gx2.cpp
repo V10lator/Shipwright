@@ -417,6 +417,8 @@ static uint32_t gfx_gx2_proc_callback_acquired(void *context) {
 }
 
 static uint32_t gfx_gx2_proc_callback_released(void *context) {
+    GX2DrawDone();
+
     GX2RDestroySurfaceEx(&main_framebuffer.color_buffer.surface, GX2R_RESOURCE_BIND_NONE);
     GX2RDestroySurfaceEx(&main_framebuffer.depth_buffer.surface, GX2R_RESOURCE_BIND_NONE);
 
@@ -490,7 +492,6 @@ static void gfx_gx2_start_frame(void) {
 }
 
 static void gfx_gx2_end_frame(void) {
-    GX2Flush();
     draw_index = 0;
 
     GX2CopyColorBufferToScanBuffer(&main_framebuffer.color_buffer, GX2_SCAN_TARGET_TV);
@@ -649,6 +650,8 @@ static uint16_t gfx_gx2_get_pixel_depth(float x, float y) {
     GX2Point dstPoint = { 0, 0 };
     GX2CopySurfaceEx(&main_framebuffer.depth_buffer.surface, 0, 0, &depthReadBuffer.surface, 0, 0, 1, &srcRect, &dstPoint);
     GX2DrawDone();
+
+    gfx_wiiu_set_context_state();
 
     // read the pixel from the depthReadBuffer
     uint32_t tmp = __builtin_bswap32(*(uint32_t *)depthReadBuffer.surface.image);

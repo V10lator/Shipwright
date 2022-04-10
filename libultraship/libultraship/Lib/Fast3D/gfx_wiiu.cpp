@@ -28,10 +28,6 @@
 #include "gfx_gx2.h"
 #include "gfx_heap.h"
 
-#define FRAME_INTERVAL_US_NUMERATOR_ 50000
-#define FRAME_INTERVAL_US_DENOMINATOR 3
-#define FRAME_INTERVAL_US_NUMERATOR (FRAME_INTERVAL_US_NUMERATOR_ * frame_divisor)
-
 bool has_foreground = false;
 static void *command_buffer_pool = nullptr;
 GX2ContextState *context_state = nullptr;
@@ -46,7 +42,6 @@ static GX2DrcRenderMode drc_render_mode;
 static void *drc_scan_buffer = nullptr;
 static uint32_t drc_scan_buffer_size = 0;
 
-static uint64_t previous_time;
 static int frame_divisor = 1;
 
 static void *gfx_wiiu_gx2r_alloc(GX2RResourceFlags flags, uint32_t size, uint32_t alignment) {
@@ -172,8 +167,7 @@ static void gfx_wiiu_init(const char *game_name, bool start_in_fullscreen) {
     GX2SetTVScale(tv_width, tv_height);
     GX2SetDRCScale(tv_width, tv_height);
 
-    // 60 fps vsync
-    GX2SetSwapInterval(1);
+    GX2SetSwapInterval(frame_divisor);
 
     gfx_current_dimensions.width = tv_width;
     gfx_current_dimensions.height = tv_height;
@@ -233,34 +227,34 @@ static void gfx_wiiu_handle_events(void) {
 }
 
 static bool gfx_wiiu_start_frame(void) {
+    uint32_t swapCount, flipCount;
+    OSTime lastFlip, lastVsync;
+    uint32_t waitCount = 0;
+
+    while (true) {
+        GX2GetSwapStatus(&swapCount, &flipCount, &lastFlip, &lastVsync);
+
+        if (flipCount >= swapCount) {
+            break;
+        }
+
+        if (waitCount >= 10) {
+            // GPU timed out, drop frame
+            return false;
+        }
+
+        waitCount++;
+        GX2WaitForVsync();
+    }
+
     return true;
 }
 
-static uint64_t qpc_to_100ns(uint64_t qpc) {
-    const uint64_t qpc_freq = OSSecondsToTicks(1);
-    return qpc / qpc_freq * 10000000 + qpc % qpc_freq * 10000000 / qpc_freq;
-}
-
-static inline void sync_framerate_with_timer(void) {
-    uint64_t t;
-    t = OSGetSystemTime();
-
-    const int64_t next = qpc_to_100ns(previous_time) + 10 * FRAME_INTERVAL_US_NUMERATOR / FRAME_INTERVAL_US_DENOMINATOR;
-    const int64_t left = next - qpc_to_100ns(t);
-    if (left > 0) {
-        OSSleepTicks(OSNanosecondsToTicks(left * 100));
-    }
-
-    t = OSGetSystemTime();
-    previous_time = t;
-}
-
 static void gfx_wiiu_swap_buffers_begin(void) {
-    // not sure how to handle vsync properly
-    GX2WaitForFlip();
-    sync_framerate_with_timer();
-
     GX2SwapScanBuffers();
+    GX2Flush();
+
+    gfx_wiiu_set_context_state();
 
     GX2SetTVEnable(TRUE);
     GX2SetDRCEnable(TRUE);
@@ -275,7 +269,10 @@ static double gfx_wiiu_get_time(void) {
 
 static void gfx_wiiu_set_framedivisor(int divisor)
 {
-    frame_divisor = divisor;
+    if (frame_divisor != divisor) {
+        GX2SetSwapInterval(divisor);
+        frame_divisor = divisor;
+    }
 }
 
 struct GfxWindowManagerAPI gfx_wiiu = {
