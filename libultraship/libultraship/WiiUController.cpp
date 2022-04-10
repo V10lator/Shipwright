@@ -71,7 +71,7 @@ namespace Ship {
 			if (kProbe)
 				continue;
 
-			KPADRead(WPADChan) i, &kStatus, 1);
+			KPADRead((WPADChan) i, &kStatus, 1);
 
 			switch (kType) {
 				case WPAD_EXT_PRO_CONTROLLER:
