@@ -1388,22 +1388,20 @@ static void gfx_sp_tri1(uint8_t vtx1_idx, uint8_t vtx2_idx, uint8_t vtx3_idx, bo
 
             if (clampS) {
                 buf_vbo[buf_vbo_len++] = (tex_width2[t] - 0.5f) / tex_width[t];
-#ifdef __WIIU__
-                // padding
-                if (!clampT) {
-                    buf_vbo[buf_vbo_len++] = 0.0f;
-                }
-#endif
             }
-            if (clampT) {
 #ifdef __WIIU__
-                // padding
-                if (!clampS) {
-                    buf_vbo[buf_vbo_len++] = 0.0f;
-                }
+            else {
+                buf_vbo[buf_vbo_len++] = 0.0f;
+            }
 #endif
+            if (clampT) {
                 buf_vbo[buf_vbo_len++] = (tex_height2[t] - 0.5f) / tex_height[t];
             }
+#ifdef __WIIU__
+            else {
+                buf_vbo[buf_vbo_len++] = 0.0f;
+            }
+#endif
         }
 
         if (use_fog) {

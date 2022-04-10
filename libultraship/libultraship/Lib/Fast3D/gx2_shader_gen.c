@@ -10,17 +10,17 @@
 
 static const uint8_t reg_map[] = {
     ALU_SRC_0, // SHADER_0
-    _R6, // SHADER_INPUT_1
-    _R7, // SHADER_INPUT_2
-    _R8, // SHADER_INPUT_3
-    _R9, // SHADER_INPUT_4
-    _R10, // SHADER_INPUT_5
-    _R11, // SHADER_INPUT_6
-    _R12, // SHADER_INPUT_7
-    _R13, // SHADER_TEXEL0
-    _R13, // SHADER_TEXEL0A
-    _R14, // SHADER_TEXEL1
-    _R14, // SHADER_TEXEL1A
+    _R4, // SHADER_INPUT_1
+    _R5, // SHADER_INPUT_2
+    _R6, // SHADER_INPUT_3
+    _R7, // SHADER_INPUT_4
+    _R8, // SHADER_INPUT_5
+    _R9, // SHADER_INPUT_6
+    _R10, // SHADER_INPUT_7
+    _R11, // SHADER_TEXEL0
+    _R11, // SHADER_TEXEL0A
+    _R12, // SHADER_TEXEL1
+    _R12, // SHADER_TEXEL1A
     ALU_SRC_1, // SHADER_1
     _R1, // SHADER_COMBINED
 };
@@ -32,9 +32,8 @@ static const uint8_t reg_map[] = {
 
 static inline void add_tex_clamp_S_T(uint64_t **alu_ptr, uint8_t tex)
 {
-    uint8_t texinfo_reg = (tex == 0) ? _R15 : _R16;
-    uint8_t texcoord_reg = (tex == 0) ? _R1 : _R3;
-    uint8_t texclamp_reg = (tex == 0) ? _R2 : _R4;
+    uint8_t texinfo_reg = (tex == 0) ? _R13 : _R14;
+    uint8_t texcoord_reg = (tex == 0) ? _R1 : _R2;
 
     ADD_INSTR(
         /* R127.xy = (float) texinfo.xy */
@@ -60,17 +59,16 @@ static inline void add_tex_clamp_S_T(uint64_t **alu_ptr, uint8_t tex)
         ALU_MAX(__, _y, texcoord_reg, _y, _R127, _y)
         ALU_LAST,
 
-        ALU_MIN(texcoord_reg, _x, ALU_SRC_PV, _x, texclamp_reg, _x),
-        ALU_MIN(texcoord_reg, _y, ALU_SRC_PV, _y, texclamp_reg, _y)
+        ALU_MIN(texcoord_reg, _x, ALU_SRC_PV, _x, texcoord_reg, _z),
+        ALU_MIN(texcoord_reg, _y, ALU_SRC_PV, _y, texcoord_reg, _w)
         ALU_LAST,
     );
 }
 
 static inline void add_tex_clamp_S(uint64_t **alu_ptr, uint8_t tex)
 {
-    uint8_t texinfo_reg = (tex == 0) ? _R15 : _R16;
-    uint8_t texcoord_reg = (tex == 0) ? _R1 : _R3;
-    uint8_t texclamp_reg = (tex == 0) ? _R2 : _R4;
+    uint8_t texinfo_reg = (tex == 0) ? _R13 : _R14;
+    uint8_t texcoord_reg = (tex == 0) ? _R1 : _R2;
 
     ADD_INSTR(
         /* R127.x = (float) texinfo.x */
@@ -88,16 +86,15 @@ static inline void add_tex_clamp_S(uint64_t **alu_ptr, uint8_t tex)
         ALU_MAX(__, _x, texcoord_reg, _x, _R127, _x)
         ALU_LAST,
 
-        ALU_MIN(texcoord_reg, _x, ALU_SRC_PV, _x, texclamp_reg, _x)
+        ALU_MIN(texcoord_reg, _x, ALU_SRC_PV, _x, texcoord_reg, _z)
         ALU_LAST,
     );
 }
 
 static inline void add_tex_clamp_T(uint64_t **alu_ptr, uint8_t tex)
 {
-    uint8_t texinfo_reg = (tex == 0) ? _R15 : _R16;
-    uint8_t texcoord_reg = (tex == 0) ? _R1 : _R3;
-    uint8_t texclamp_reg = (tex == 0) ? _R2 : _R4;
+    uint8_t texinfo_reg = (tex == 0) ? _R13 : _R14;
+    uint8_t texcoord_reg = (tex == 0) ? _R1 : _R2;
 
     ADD_INSTR(
         /* R127.y = (float) texinfo.y */
@@ -115,7 +112,7 @@ static inline void add_tex_clamp_T(uint64_t **alu_ptr, uint8_t tex)
         ALU_MAX(__, _y, texcoord_reg, _y, _R127, _y)
         ALU_LAST,
 
-        ALU_MIN(texcoord_reg, _y, ALU_SRC_PV, _y, texclamp_reg, _y)
+        ALU_MIN(texcoord_reg, _y, ALU_SRC_PV, _y, texcoord_reg, _w)
         ALU_LAST,
     );
 }
@@ -382,14 +379,14 @@ static int generatePixelShader(GX2PixelShader *psh, struct CCFeatures *cc_featur
     if (cc_features->opt_fog) {
         ADD_INSTR(
             /* texel.rgb = mix(texel.rgb, vFog.rgb, vFog.a); */
-            ALU_ADD(__, _x, _R5, _x, _R1 _NEG, _x),
-            ALU_ADD(__, _y, _R5, _y, _R1 _NEG, _y),
-            ALU_ADD(__, _z, _R5, _z, _R1 _NEG, _z)
+            ALU_ADD(__, _x, _R3, _x, _R1 _NEG, _x),
+            ALU_ADD(__, _y, _R3, _y, _R1 _NEG, _y),
+            ALU_ADD(__, _z, _R3, _z, _R1 _NEG, _z)
             ALU_LAST,
 
-            ALU_MULADD(_R1, _x, ALU_SRC_PV, _x, _R5, _w, _R1, _x),
-            ALU_MULADD(_R1, _y, ALU_SRC_PV, _y, _R5, _w, _R1, _y),
-            ALU_MULADD(_R1, _z, ALU_SRC_PV, _z, _R5, _w, _R1, _z)
+            ALU_MULADD(_R1, _x, ALU_SRC_PV, _x, _R3, _w, _R1, _x),
+            ALU_MULADD(_R1, _y, ALU_SRC_PV, _y, _R3, _w, _R1, _y),
+            ALU_MULADD(_R1, _z, ALU_SRC_PV, _z, _R3, _w, _R1, _z)
             ALU_LAST,
         );
     }
@@ -448,7 +445,7 @@ static int generatePixelShader(GX2PixelShader *psh, struct CCFeatures *cc_featur
 
     for (int i = 0; i < 2; i++) {
         if (cc_features->used_textures[i] && texclamp[i]) {
-            uint8_t dst_reg = (i == 0) ? _R15 : _R16;
+            uint8_t dst_reg = (i == 0) ? _R13 : _R14;
 
             uint64_t texinfo_buf[] = {
                 TEX_GET_TEXTURE_INFO(dst_reg, _x, _y, _m, _m, _R1, _0, _0, _0, _0,  _t(i), _s(i))
@@ -463,7 +460,7 @@ static int generatePixelShader(GX2PixelShader *psh, struct CCFeatures *cc_featur
 
     for (int i = 0; i < 2; i++) {
         if (cc_features->used_textures[i]) {
-            uint8_t texcoord_reg = (i == 0) ? _R1 : _R3;
+            uint8_t texcoord_reg = (i == 0) ? _R1 : _R2;
             uint8_t dst_reg = reg_map[(i == 0) ? SHADER_TEXEL0 : SHADER_TEXEL1];
 
             uint64_t tex_buf[] = {
@@ -505,9 +502,9 @@ static int generatePixelShader(GX2PixelShader *psh, struct CCFeatures *cc_featur
     }
 
     // regs
-    const uint32_t num_ps_inputs = 5 + cc_features->num_inputs;
+    const uint32_t num_ps_inputs = 3 + cc_features->num_inputs;
 
-    psh->regs.sq_pgm_resources_ps = 17; // num_gprs
+    psh->regs.sq_pgm_resources_ps = 15; // num_gprs
     psh->regs.sq_pgm_exports_ps = 2; // export_mode
     psh->regs.spi_ps_in_control_0 = (num_ps_inputs + 1) // num_interp
         | (1 << 8) // position_ena
@@ -548,18 +545,16 @@ static int generatePixelShader(GX2PixelShader *psh, struct CCFeatures *cc_featur
 
 static GX2AttribVar attribVars[] = {
     { "aVtxPos",    GX2_SHADER_VAR_TYPE_FLOAT4, 0, 0},
-    { "aTexCoord0", GX2_SHADER_VAR_TYPE_FLOAT2, 0, 1},
-    { "aTexClamp0", GX2_SHADER_VAR_TYPE_FLOAT2, 0, 2},
-    { "aTexCoord1", GX2_SHADER_VAR_TYPE_FLOAT2, 0, 3},
-    { "aTexClamp1", GX2_SHADER_VAR_TYPE_FLOAT2, 0, 4},
-    { "aFog",       GX2_SHADER_VAR_TYPE_FLOAT4, 0, 5},
-    { "aInput1",    GX2_SHADER_VAR_TYPE_FLOAT4, 0, 6},
-    { "aInput2",    GX2_SHADER_VAR_TYPE_FLOAT4, 0, 7},
-    { "aInput3",    GX2_SHADER_VAR_TYPE_FLOAT4, 0, 8},
-    { "aInput4",    GX2_SHADER_VAR_TYPE_FLOAT4, 0, 9},
-    { "aInput5",    GX2_SHADER_VAR_TYPE_FLOAT4, 0, 10},
-    { "aInput6",    GX2_SHADER_VAR_TYPE_FLOAT4, 0, 11},
-    { "aInput7",    GX2_SHADER_VAR_TYPE_FLOAT4, 0, 12},
+    { "aTexCoord0", GX2_SHADER_VAR_TYPE_FLOAT4, 0, 1},
+    { "aTexCoord1", GX2_SHADER_VAR_TYPE_FLOAT4, 0, 2},
+    { "aFog",       GX2_SHADER_VAR_TYPE_FLOAT4, 0, 3},
+    { "aInput1",    GX2_SHADER_VAR_TYPE_FLOAT4, 0, 4},
+    { "aInput2",    GX2_SHADER_VAR_TYPE_FLOAT4, 0, 5},
+    { "aInput3",    GX2_SHADER_VAR_TYPE_FLOAT4, 0, 6},
+    { "aInput4",    GX2_SHADER_VAR_TYPE_FLOAT4, 0, 7},
+    { "aInput5",    GX2_SHADER_VAR_TYPE_FLOAT4, 0, 8},
+    { "aInput6",    GX2_SHADER_VAR_TYPE_FLOAT4, 0, 9},
+    { "aInput7",    GX2_SHADER_VAR_TYPE_FLOAT4, 0, 10},
 };
 
 static int generateVertexShader(GX2VertexShader *vsh, struct CCFeatures *cc_features) {
@@ -569,7 +564,7 @@ static int generateVertexShader(GX2VertexShader *vsh, struct CCFeatures *cc_feat
         return -1;
     }
 
-    const uint32_t num_ps_inputs = 5 + cc_features->num_inputs;
+    const uint32_t num_ps_inputs = 3 + cc_features->num_inputs;
 
     uint64_t *cur_buf = program_buf;
 
@@ -606,37 +601,33 @@ static int generateVertexShader(GX2VertexShader *vsh, struct CCFeatures *cc_feat
     memset(vsh->regs.spi_vs_out_id, 0xff, sizeof(vsh->regs.spi_vs_out_id));
     vsh->regs.spi_vs_out_id[0] = (0) | (1 << 8) | (2 << 16) | (3 << 24);
     vsh->regs.spi_vs_out_id[1] = (4) | (5 << 8) | (6 << 16) | (7 << 24);
-    vsh->regs.spi_vs_out_id[2] = (8) | (9 << 8) | (10 << 16) | (11 << 24);
+    vsh->regs.spi_vs_out_id[2] = (8) | (9 << 8) | (0xff << 16) | (0xff << 24);
 
-    vsh->regs.sq_vtx_semantic_clear = ~((1 << 13) - 1);
-    vsh->regs.num_sq_vtx_semantic = 13;
+    vsh->regs.sq_vtx_semantic_clear = ~((1 << 11) - 1);
+    vsh->regs.num_sq_vtx_semantic = 11;
     memset(vsh->regs.sq_vtx_semantic, 0xff, sizeof(vsh->regs.sq_vtx_semantic));
     // aVtxPos
     vsh->regs.sq_vtx_semantic[0] = 0;
     // aTexCoord0
     vsh->regs.sq_vtx_semantic[1] = 1;
-    // aTexClamp0
-    vsh->regs.sq_vtx_semantic[2] = 2;
     // aTexCoord1
-    vsh->regs.sq_vtx_semantic[3] = 3;
-    // aTexClamp1
-    vsh->regs.sq_vtx_semantic[4] = 4;
+    vsh->regs.sq_vtx_semantic[2] = 2;
     // aFog
-    vsh->regs.sq_vtx_semantic[5] = 5;
+    vsh->regs.sq_vtx_semantic[3] = 3;
     // aInput1
-    vsh->regs.sq_vtx_semantic[6] = 6;
+    vsh->regs.sq_vtx_semantic[4] = 4;
     // aInput2
-    vsh->regs.sq_vtx_semantic[7] = 7;
+    vsh->regs.sq_vtx_semantic[5] = 5;
     // aInput3
-    vsh->regs.sq_vtx_semantic[8] = 8;
+    vsh->regs.sq_vtx_semantic[6] = 6;
     // aInput4
-    vsh->regs.sq_vtx_semantic[9] = 9;
+    vsh->regs.sq_vtx_semantic[7] = 7;
     // aInput5
-    vsh->regs.sq_vtx_semantic[10] = 10;
+    vsh->regs.sq_vtx_semantic[8] = 8;
     // aInput6
-    vsh->regs.sq_vtx_semantic[11] = 11;
+    vsh->regs.sq_vtx_semantic[9] = 9;
     // aInput7
-    vsh->regs.sq_vtx_semantic[12] = 12;
+    vsh->regs.sq_vtx_semantic[10] = 10;
 
     vsh->regs.vgt_vertex_reuse_block_cntl = 14; // vtx_reuse_depth
     vsh->regs.vgt_hos_reuse_depth = 16; // reuse_depth
@@ -681,29 +672,22 @@ int gx2GenerateShaderGroup(struct ShaderGroup *group, struct CCFeatures *cc_feat
         if (cc_features->used_textures[i]) {
             // aTexCoordX
             group->attributes[group->numAttributes++] = 
-                (GX2AttribStream) { 1 + (i * 2), 0, attribOffset, GX2_ATTRIB_FORMAT_FLOAT_32_32, GX2_ATTRIB_INDEX_PER_VERTEX, 0, GX2_COMP_SEL(_x, _y, _0, _1), GX2_ENDIAN_SWAP_DEFAULT };
-            attribOffset += 2 * sizeof(float);
-
-            if (cc_features->clamp[i][0] || cc_features->clamp[i][1]) {
-                // aTexClampX
-                group->attributes[group->numAttributes++] = 
-                    (GX2AttribStream) { 2 + (i * 2), 0, attribOffset, GX2_ATTRIB_FORMAT_FLOAT_32_32, GX2_ATTRIB_INDEX_PER_VERTEX, 0, GX2_COMP_SEL(_x, _y, _0, _1), GX2_ENDIAN_SWAP_DEFAULT };
-                attribOffset += 2 * sizeof(float);
-            }
+                (GX2AttribStream) { 1 + i, 0, attribOffset, GX2_ATTRIB_FORMAT_FLOAT_32_32_32_32, GX2_ATTRIB_INDEX_PER_VERTEX, 0, GX2_COMP_SEL(_x, _y, _z, _w), GX2_ENDIAN_SWAP_DEFAULT };
+            attribOffset += 4 * sizeof(float);
         }
     }
 
     // aFog
     if (cc_features->opt_fog) {
         group->attributes[group->numAttributes++] = 
-            (GX2AttribStream) { 5, 0, attribOffset, GX2_ATTRIB_FORMAT_FLOAT_32_32_32_32, GX2_ATTRIB_INDEX_PER_VERTEX, 0, GX2_COMP_SEL(_x, _y, _z, _w), GX2_ENDIAN_SWAP_DEFAULT };
+            (GX2AttribStream) { 3, 0, attribOffset, GX2_ATTRIB_FORMAT_FLOAT_32_32_32_32, GX2_ATTRIB_INDEX_PER_VERTEX, 0, GX2_COMP_SEL(_x, _y, _z, _w), GX2_ENDIAN_SWAP_DEFAULT };
         attribOffset += 4 * sizeof(float);
     }
 
     // aInput
     for (int i = 0; i < cc_features->num_inputs; i++) {
         group->attributes[group->numAttributes++] = 
-            (GX2AttribStream) { 6 + i, 0, attribOffset, GX2_ATTRIB_FORMAT_FLOAT_32_32_32_32, GX2_ATTRIB_INDEX_PER_VERTEX, 0, GX2_COMP_SEL(_x, _y, _z, _w), GX2_ENDIAN_SWAP_DEFAULT };
+            (GX2AttribStream) { 4 + i, 0, attribOffset, GX2_ATTRIB_FORMAT_FLOAT_32_32_32_32, GX2_ATTRIB_INDEX_PER_VERTEX, 0, GX2_COMP_SEL(_x, _y, _z, _w), GX2_ENDIAN_SWAP_DEFAULT };
         attribOffset += 4 * sizeof(float);
     }
 
