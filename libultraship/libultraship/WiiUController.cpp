@@ -107,8 +107,8 @@ namespace Ship {
 					else if (kStatus.pro.hold & WPAD_PRO_STICK_R_EMULATION_DOWN)
 						dwPressedButtons |= BTN_CDOWN;
 
-					wStickX = kStatus.pro.leftStick.x * 84;
-					wStickY = kStatus.pro.leftStick.y * 84;
+					wStickX += kStatus.pro.leftStick.x * 84;
+					wStickY += kStatus.pro.leftStick.y * 84;
 					break;
 				case WPAD_EXT_CLASSIC:
 				case WPAD_EXT_MPLUS_CLASSIC:
@@ -133,6 +133,10 @@ namespace Ship {
 					if (kStatus.classic.hold & WPAD_CLASSIC_BUTTON_LEFT)
 						dwPressedButtons |= BTN_DLEFT;
 					break;
+				case WPAD_EXT_NUNCHUK:
+				case WPAD_EXT_MPLUS_NUNCHUK:
+					wStickX += kStatus.nunchuck.stick.x * 84;
+					wStickY += kStatus.nunchuck.stick.y * 84;
 			}
 
 			if (kStatus.hold & WPAD_BUTTON_A)
