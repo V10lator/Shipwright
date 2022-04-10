@@ -7,11 +7,13 @@
 
 namespace Ship {
 	WiiUController::WiiUController(int32_t dwControllerNumber) : Controller(dwControllerNumber) {
+		KPADInit();
+		WPADEnableURCC(true);
 		LoadBinding();
 	}
 
 	WiiUController::~WiiUController() {
-		
+		KPADShutdown();
 	}
 
 	void WiiUController::ReadFromSource() {
