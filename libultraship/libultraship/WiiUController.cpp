@@ -16,6 +16,8 @@ namespace Ship {
 		KPADShutdown();
 	}
 
+	static bool nsoPad = false;
+
 	void WiiUController::ReadFromSource() {
 		dwPressedButtons = 0;
 		wStickX = 0;
@@ -77,15 +79,21 @@ namespace Ship {
 
 			switch (kType) {
 				case WPAD_EXT_PRO_CONTROLLER:
+
+					if (kStatus.pro.hold & WPAD_PRO_BUTTON_STICK_R)
+						nsoPad = false;
+					if (kStatus.pro.hold & WPAD_PRO_BUTTON_UP && kStatus.pro.hold & WPAD_PRO_STICK_R_EMULATION_UP)
+						nsoPad = true;
+
 					if (kStatus.pro.hold & WPAD_PRO_BUTTON_A)
 						dwPressedButtons |= BTN_A;
 					if (kStatus.pro.hold & WPAD_PRO_BUTTON_B)
 						dwPressedButtons |= BTN_B;
 					if (kStatus.pro.hold & WPAD_PRO_TRIGGER_ZL)
 						dwPressedButtons |= BTN_Z;
-					if (kStatus.pro.hold & WPAD_PRO_TRIGGER_R)
+					if (kStatus.pro.hold & (nsoPad ? WPAD_PRO_TRIGGER_R : WPAD_PRO_TRIGGER_ZR))
 						dwPressedButtons |= BTN_R;
-					if (kStatus.pro.hold & WPAD_PRO_TRIGGER_L)
+					if (kStatus.pro.hold & (nsoPad ? WPAD_PRO_TRIGGER_L : WPAD_PRO_BUTTON_MINUS))
 						dwPressedButtons |= BTN_L;
 					if (kStatus.pro.hold & WPAD_PRO_BUTTON_PLUS)
 						dwPressedButtons |= BTN_START;
@@ -98,13 +106,13 @@ namespace Ship {
 					if (kStatus.pro.hold & WPAD_PRO_BUTTON_LEFT)
 						dwPressedButtons |= BTN_DLEFT;
 
-					if (kStatus.pro.hold & WPAD_PRO_STICK_R_EMULATION_RIGHT)
+					if (kStatus.pro.hold & WPAD_PRO_STICK_R_EMULATION_RIGHT || kStatus.pro.hold & WPAD_PRO_BUTTON_X)
 						dwPressedButtons |= BTN_CRIGHT;
-					else if (kStatus.pro.hold & WPAD_PRO_STICK_R_EMULATION_LEFT)
+					else if (kStatus.pro.hold & WPAD_PRO_STICK_R_EMULATION_LEFT || kStatus.pro.hold & WPAD_PRO_BUTTON_Y)
 						dwPressedButtons |= BTN_CLEFT;
-					if (kStatus.pro.hold & WPAD_PRO_STICK_R_EMULATION_UP)
+					if (kStatus.pro.hold & WPAD_PRO_STICK_R_EMULATION_UP || kStatus.pro.hold & (nsoPad ? 0 : WPAD_PRO_TRIGGER_L))
 						dwPressedButtons |= BTN_CUP;
-					else if (kStatus.pro.hold & WPAD_PRO_STICK_R_EMULATION_DOWN)
+					else if (kStatus.pro.hold & WPAD_PRO_STICK_R_EMULATION_DOWN || kStatus.pro.hold & (nsoPad ? 0 : WPAD_PRO_TRIGGER_R))
 						dwPressedButtons |= BTN_CDOWN;
 
 					wStickX += kStatus.pro.leftStick.x * 84;
@@ -116,11 +124,11 @@ namespace Ship {
 						dwPressedButtons |= BTN_A;
 					if (kStatus.classic.hold & WPAD_CLASSIC_BUTTON_B)
 						dwPressedButtons |= BTN_B;
-					if (kStatus.classic.hold & WPAD_CLASSIC_BUTTON_ZL)
+					if (kStatus.classic.hold & WPAD_CLASSIC_BUTTON_L)
 						dwPressedButtons |= BTN_Z;
 					if (kStatus.classic.hold & WPAD_CLASSIC_BUTTON_R)
 						dwPressedButtons |= BTN_R;
-					if (kStatus.classic.hold & WPAD_CLASSIC_BUTTON_L)
+					if (kStatus.classic.hold & WPAD_CLASSIC_BUTTON_MINUS)
 						dwPressedButtons |= BTN_L;
 					if (kStatus.classic.hold & WPAD_CLASSIC_BUTTON_PLUS)
 						dwPressedButtons |= BTN_START;
@@ -133,13 +141,13 @@ namespace Ship {
 					if (kStatus.classic.hold & WPAD_CLASSIC_BUTTON_LEFT)
 						dwPressedButtons |= BTN_DLEFT;
 
-					if (kStatus.classic.hold & WPAD_CLASSIC_STICK_R_EMULATION_RIGHT)
+					if (kStatus.classic.hold & WPAD_CLASSIC_STICK_R_EMULATION_RIGHT || kStatus.classic.hold & WPAD_CLASSIC_BUTTON_X)
 						dwPressedButtons |= BTN_CRIGHT;
-					else if (kStatus.classic.hold & WPAD_CLASSIC_STICK_R_EMULATION_LEFT)
+					else if (kStatus.classic.hold & WPAD_CLASSIC_STICK_R_EMULATION_LEFT || kStatus.classic.hold & WPAD_CLASSIC_BUTTON_Y)
 						dwPressedButtons |= BTN_CLEFT;
-					if (kStatus.classic.hold & WPAD_CLASSIC_STICK_R_EMULATION_UP)
+					if (kStatus.classic.hold & WPAD_CLASSIC_STICK_R_EMULATION_UP || kStatus.classic.hold & WPAD_CLASSIC_BUTTON_ZL)
 						dwPressedButtons |= BTN_CUP;
-					else if (kStatus.classic.hold & WPAD_CLASSIC_STICK_R_EMULATION_DOWN)
+					else if (kStatus.classic.hold & WPAD_CLASSIC_STICK_R_EMULATION_DOWN || kStatus.classic.hold & WPAD_CLASSIC_BUTTON_ZR)
 						dwPressedButtons |= BTN_CDOWN;
 
 					wStickX += kStatus.classic.leftStick.x * 84;
