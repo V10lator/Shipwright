@@ -16,7 +16,7 @@ namespace Ship {
 		KPADShutdown();
 	}
 
-	static bool nsoPad;
+	static bool nsoPad = false;
 
 	void WiiUController::ReadFromSource() {
 		dwPressedButtons = 0;
@@ -81,9 +81,9 @@ namespace Ship {
 				case WPAD_EXT_PRO_CONTROLLER:
 
 					if (kStatus.pro.hold & WPAD_PRO_BUTTON_STICK_R)
-						nsoPad = 0;
+						nsoPad = false;
 					if (kStatus.pro.hold & WPAD_PRO_BUTTON_UP && kStatus.pro.hold & WPAD_PRO_STICK_R_EMULATION_UP)
-						nsoPad = 1;
+						nsoPad = true;
 
 					if (kStatus.pro.hold & WPAD_PRO_BUTTON_A)
 						dwPressedButtons |= BTN_A;
