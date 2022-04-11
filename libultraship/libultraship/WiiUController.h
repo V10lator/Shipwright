@@ -2,6 +2,10 @@
 #include "Controller.h"
 #include <string>
 
+extern "C" {
+	extern void WPADControlMotor(int controller, int state);
+}
+
 namespace Ship {
 	class WiiUController : public Controller {
 		public:
@@ -15,5 +19,8 @@ namespace Ship {
 			std::string GetControllerType();
 			std::string GetConfSection();
 			std::string GetBindingConfSection();
+
+		private:
+			uint8_t rumblePattern[120];
 	};
 }
