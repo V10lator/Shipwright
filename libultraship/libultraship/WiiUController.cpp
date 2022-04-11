@@ -82,7 +82,7 @@ namespace Ship {
 
 					if (kStatus.pro.hold & WPAD_PRO_BUTTON_STICK_R)
 						nsoPad = 0;
-					if (kStatus.pro.hold & WPAD_PRO_STICK_R_EMULATION_UP & WPAD_PRO_STICK_R_EMULATION_DOWN & WPAD_PRO_STICK_R_EMULATION_LEFT & WPAD_PRO_STICK_R_EMULATION_RIGHT)
+					if (kStatus.pro.hold & WPAD_PRO_BUTTON_UP && kStatus.pro.hold & WPAD_PRO_STICK_R_EMULATION_UP)
 						nsoPad = 1;
 
 					if (kStatus.pro.hold & WPAD_PRO_BUTTON_A)
