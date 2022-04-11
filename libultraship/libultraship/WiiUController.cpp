@@ -6,9 +6,12 @@
 #include <vpad/input.h>
 
 namespace Ship {
+	static uint8_t rumblePattern[120];
+
 	WiiUController::WiiUController(int32_t dwControllerNumber) : Controller(dwControllerNumber) {
 		KPADInit();
 		WPADEnableURCC(true);
+		memset(rumblePattern, 0xFF, 120);
 		LoadBinding();
 	}
 
@@ -174,8 +177,18 @@ namespace Ship {
 		}
 	}
 
+	extern void WPADControlMotor(int controller, int state);
+
 	void WiiUController::WriteToSource(ControllerCallback* controller) {
-		// TODO rumble
+		if (controller->rumble > 0) {
+			VPADControlMotor(VPAD_CHAN_0, rumblePattern, 120);
+			for (int i = 0; i < 4; i++)
+					WPADControlMotor(i, 1);
+		} else {
+			VPADStopMotor(VPAD_CHAN_0);
+			for (int i = 0; i < 4; i++)
+					WPADControlMotor(i, 0);
+		}
 	}
 
 	std::string WiiUController::GetControllerType() {
