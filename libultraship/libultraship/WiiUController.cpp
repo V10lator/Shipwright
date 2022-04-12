@@ -9,7 +9,7 @@ namespace Ship {
 	WiiUController::WiiUController(int32_t dwControllerNumber) : Controller(dwControllerNumber) {
 		KPADInit();
 		WPADEnableURCC(true);
-		memset(rumblePattern, 0xFF, 120);
+		memset(rumblePattern, 0xFF, 15);
 		LoadBinding();
 	}
 
