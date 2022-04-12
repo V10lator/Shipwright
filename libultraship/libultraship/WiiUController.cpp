@@ -176,15 +176,9 @@ namespace Ship {
 	}
 
 	void WiiUController::WriteToSource(ControllerCallback* controller) {
-		if (controller->rumble > 0) {
-			VPADControlMotor(VPAD_CHAN_0, rumblePattern, 120);
-			for (int i = 0; i < 4; i++)
-					WPADControlMotor(i, 1);
-		} else {
-			VPADStopMotor(VPAD_CHAN_0);
-			for (int i = 0; i < 4; i++)
-					WPADControlMotor(i, 0);
-		}
+		VPADControlMotor(VPAD_CHAN_0, rumblePattern, controller->rumble ? 120 : 0);
+		for (int i = 0; i < 4; i++)
+			WPADControlMotor(i, controller->rumble);
 	}
 
 	std::string WiiUController::GetControllerType() {
