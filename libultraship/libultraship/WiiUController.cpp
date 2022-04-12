@@ -5,13 +5,7 @@
 #include <padscore/wpad.h>
 #include <vpad/input.h>
 
-extern "C" {
-	extern void WPADControlMotor(int controller, int state);
-}
-
 namespace Ship {
-	static uint8_t rumblePattern[120];
-
 	WiiUController::WiiUController(int32_t dwControllerNumber) : Controller(dwControllerNumber) {
 		KPADInit();
 		WPADEnableURCC(true);
