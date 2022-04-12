@@ -5,6 +5,10 @@
 #include <padscore/wpad.h>
 #include <vpad/input.h>
 
+extern "C" {
+	extern void WPADControlMotor(int controller, int state);
+}
+
 namespace Ship {
 	static uint8_t rumblePattern[120];
 
@@ -176,8 +180,6 @@ namespace Ship {
 				dwPressedButtons |= BTN_DLEFT;
 		}
 	}
-
-	extern void WPADControlMotor(int controller, int state);
 
 	void WiiUController::WriteToSource(ControllerCallback* controller) {
 		if (controller->rumble > 0) {
