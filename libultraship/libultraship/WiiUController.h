@@ -21,6 +21,6 @@ namespace Ship {
 			std::string GetBindingConfSection();
 
 		private:
-			uint8_t rumblePattern[120];
+			uint8_t rumblePattern[15];
 	};
 }
