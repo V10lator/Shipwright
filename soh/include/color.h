@@ -12,7 +12,11 @@ typedef struct {
 // only use when necessary for alignment purposes
 typedef union {
     struct {
+#ifdef BIGENDIAN
+        u8 r, g, b, a;
+#else
         u8 a, b, g, r;
+#endif
     };
     u32 rgba;
 } Color_RGBA8_u32;
