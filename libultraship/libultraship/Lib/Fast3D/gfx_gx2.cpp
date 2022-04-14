@@ -334,7 +334,8 @@ static void gfx_gx2_set_sampler_parameters(int tile, bool linear_filter, uint32_
 }
 
 static void gfx_gx2_set_depth_test_and_mask(bool depth_test, bool z_upd) {
-    GX2SetDepthOnlyControl(depth_test, z_upd, GX2_COMPARE_FUNC_LEQUAL);
+    GX2SetDepthOnlyControl(depth_test || z_upd, z_upd,
+        depth_test ? GX2_COMPARE_FUNC_LEQUAL : GX2_COMPARE_FUNC_ALWAYS);
 }
 
 static void gfx_gx2_set_zmode_decal(bool zmode_decal) {
