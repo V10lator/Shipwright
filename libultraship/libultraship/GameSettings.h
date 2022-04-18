@@ -20,7 +20,7 @@ struct SoHConfigType {
 
     // Enhancements
     struct {
-        int text_speed = 1;
+        int text_speed = 3;
         bool skip_text = false;
         bool disable_lod = false;
         bool animated_pause_menu = false;
