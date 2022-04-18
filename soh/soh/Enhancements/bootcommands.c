@@ -21,7 +21,7 @@ static BootCommand sCommands[] = { { "--skiplogo", BootCommands_Command_SkipLogo
 
 void BootCommands_Init() 
 {
-    CVar_RegisterS32("gDisableLOD", 1);
+    CVar_RegisterS32("gDisableLOD", 0);
     CVar_RegisterS32("gDebugEnabled", 0);
     CVar_RegisterS32("gPauseLiveLink", 1);
     CVar_RegisterS32("gMinimalUI", 0);
