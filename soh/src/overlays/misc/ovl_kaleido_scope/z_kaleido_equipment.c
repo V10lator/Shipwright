@@ -574,12 +574,7 @@ void KaleidoScope_DrawEquipment(GlobalContext* globalCtx) {
             } else if ((i == 0) && (k == 2) && (gBitFlags[bit + 1] & gSaveContext.inventory.equipment)) {
                 KaleidoScope_DrawQuadTextureRGBA32(globalCtx->state.gfxCtx, gBrokenGiantsKnifeIconTex, 32, 32, point);
             } else if (gBitFlags[bit] & gSaveContext.inventory.equipment) {
-                int itemId = ITEM_SWORD_KOKIRI + temp;
-                bool not_acquired = (gItemAgeReqs[itemId] != 9) && (gItemAgeReqs[itemId] != gSaveContext.linkAge);
-                if (not_acquired)
-                    gsSPSetGfxEffect(POLY_KAL_DISP++, GRAYOUT);
-                KaleidoScope_DrawQuadTextureRGBA32(globalCtx->state.gfxCtx, gItemIcons[itemId], 32, 32, point);
-                gsSPSetGfxEffect(POLY_KAL_DISP++, NONE);
+                KaleidoScope_DrawQuadTextureRGBA32(globalCtx->state.gfxCtx, gItemIcons[ITEM_SWORD_KOKIRI + temp], 32, 32, point);
             }
         }
     }
