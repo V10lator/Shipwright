@@ -27,7 +27,6 @@ void BootCommands_Init()
     CVar_RegisterS32("gMinimalUI", 0);
     CVar_RegisterS32("gNewDrops", 1);
     CVar_RegisterS32("gRumbleEnabled", 1);
-    CVar_RegisterS32("gRumbleEnabled", 1);
     CVar_RegisterS32("gTextSpeed", 3);
 }
 
