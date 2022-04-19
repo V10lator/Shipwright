@@ -115,7 +115,7 @@ void Main(void* arg) {
 
     osCreateMesgQueue(&irqMgrMsgQ, irqMgrMsgBuf, 0x3C);
     StackCheck_Init(&sIrqMgrStackInfo, sIrqMgrStack, sIrqMgrStack + sizeof(sIrqMgrStack), 0, 0x100, "irqmgr");
-    IrqMgr_Init(&gIrqMgr, sIrqMgrStack + sizeof(sIrqMgrStackInfo, Z_PRIORITY_IRQMGR, 1);
+    IrqMgr_Init(&gIrqMgr, sIrqMgrStack + sizeof(sIrqMgrStack), Z_PRIORITY_IRQMGR, 1);
 
     osSyncPrintf("タスクスケジューラの初期化\n"); // "Initialize the task scheduler"
     StackCheck_Init(&sSchedStackInfo, sSchedStack, sSchedStack + sizeof(sSchedStack), 0, 0x100, "sched");
