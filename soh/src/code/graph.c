@@ -499,8 +499,6 @@ static void RunFrame()
             AudioPlayer_Play((u8*)audio_buffer, num_audio_samples * (sizeof(int16_t) * NUM_AUDIO_CHANNELS * AUDIO_FRAMES_PER_UPDATE));
             
 
-            PadMgr_ThreadEntry(&gPadMgr);
-            
             Graph_Update(&runFrameContext.gfxCtx, runFrameContext.gameState);
             ticksB = GetPerfCounter();
 
