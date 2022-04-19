@@ -392,7 +392,7 @@ void PadMgr_ThreadEntry(PadMgr* padMgr) {
     s16* mesg = NULL;
     s32 exit;
 
-    //osSyncPrintf("コントローラスレッド実行開始\n"); // "Controller thread execution start"
+    osSyncPrintf("コントローラスレッド実行開始\n"); // "Controller thread execution start"
 
     exit = false;
     while (!exit) {
