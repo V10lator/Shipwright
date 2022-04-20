@@ -26,6 +26,7 @@ struct SoHConfigType {
         bool animated_pause_menu = false;
         bool minimal_ui = false;
         bool newdrops = true;
+        bool gc_colors = false;
     } enhancements;
 
     // Controller

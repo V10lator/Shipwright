@@ -70,6 +70,9 @@ namespace Game {
         Settings.enhancements.newdrops = stob(Conf[EnhancementSection]["newdrops"]);
         CVar_SetS32("gNewDrops", Settings.enhancements.newdrops);
         
+        Settings.enhancements.gc_colors = stob(Conf[EnhancementSection]["gc_colors"]);
+        CVar_SetS32("gGameCubeColors", Settings.enhancements.gc_colors);
+
         // Audio
         Settings.audio.master = Ship::stof(Conf[AudioSection]["master"]);
         CVar_SetFloat("gGameMasterVolume", Settings.audio.master);
@@ -159,6 +162,7 @@ namespace Game {
         Conf[EnhancementSection]["animated_pause_menu"] = std::to_string(Settings.enhancements.animated_pause_menu);
         Conf[EnhancementSection]["minimal_ui"] = std::to_string(Settings.enhancements.minimal_ui);
 		Conf[EnhancementSection]["newdrops"] = std::to_string(Settings.enhancements.newdrops);
+        Conf[EnhancementSection]["gc_colors"] = std::to_string(Settings.enhancements.gc_colors);
 
         // Controllers
         Conf[ControllerSection]["gyro_sensitivity"] = std::to_string(Settings.controller.gyro_sensitivity);
