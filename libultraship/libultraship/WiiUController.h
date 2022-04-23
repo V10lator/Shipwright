@@ -2,10 +2,6 @@
 #include "Controller.h"
 #include <string>
 
-extern "C" {
-	extern void WPADControlMotor(int controller, int state);
-}
-
 namespace Ship {
 	class WiiUController : public Controller {
 		public:
