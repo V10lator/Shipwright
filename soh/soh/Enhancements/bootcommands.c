@@ -28,6 +28,7 @@ void BootCommands_Init()
     CVar_RegisterS32("gNewDrops", 1);
     CVar_RegisterS32("gRumbleEnabled", 1);
     CVar_RegisterS32("gTextSpeed", 3);
+    CVar_RegisterS32("gGameCubeColors", 0);
 }
 
 //void BootCommands_ParseBootArgs(char* str)
