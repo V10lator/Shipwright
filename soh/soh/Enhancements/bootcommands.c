@@ -11,7 +11,7 @@
 #include <ultra64/gs2dex.h>
 #include <ultra64/controller.h>
 
-uint8_t gLoadFileSelect = 0, gSkipLogoTest = 0;
+uint8_t gLoadFileSelect = 0, gSkipLogoTest = 1;
 
 extern BootCommandFunc BootCommands_Command_SkipLogo(char** argv, s32 argc);
 extern BootCommandFunc BootCommands_Command_LoadFileSelect(char** argv, s32 argc);
@@ -23,9 +23,9 @@ void BootCommands_Init()
 {
     CVar_RegisterS32("gDisableLOD", 0);
     CVar_RegisterS32("gDebugEnabled", 0);
-    CVar_RegisterS32("gPauseLiveLink", 0);
+    CVar_RegisterS32("gPauseLiveLink", 1);
     CVar_RegisterS32("gMinimalUI", 0);
-    CVar_RegisterS32("gRumbleEnabled", 0);
+    CVar_RegisterS32("gRumbleEnabled", 1);
     CVar_RegisterS32("gUniformLR", 1);
     CVar_RegisterS32("gNewDrops", 1);
     CVar_RegisterS32("gVisualAgony", 0);
