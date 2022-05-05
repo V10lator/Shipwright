@@ -20,5 +20,8 @@ namespace Ship {
 			std::string GetControllerType();
 			std::string GetConfSection();
 			std::string GetBindingConfSection();
+
+		private:
+			uint8_t rumblePattern[15];
 	};
 }
