@@ -29,7 +29,7 @@ void BootCommands_Init()
     CVar_RegisterS32("gUniformLR", 1);
     CVar_RegisterS32("gNewDrops", 1);
     CVar_RegisterS32("gVisualAgony", 0);
-    CVar_RegisterS32("gLanguages", 0); //0 = English / 1 = German / 2 = French
+    CVar_RegisterS32("gLanguages", 1); //0 = English / 1 = German / 2 = French
     CVar_RegisterS32("gTextSpeed", 3);
 }
 
