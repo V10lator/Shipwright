@@ -31,6 +31,9 @@ void BootCommands_Init()
     CVar_RegisterS32("gVisualAgony", 0);
     CVar_RegisterS32("gLanguages", 1); //0 = English / 1 = German / 2 = French
     CVar_RegisterS32("gTextSpeed", 3);
+    CVar_RegisterS32("gDpadPauseName", 1);
+    CVar_RegisterS32("gDpadOcarinaText", 1);
+    CVar_RegisterS32("gDpadShop", 1);
 }
 
 //void BootCommands_ParseBootArgs(char* str)
