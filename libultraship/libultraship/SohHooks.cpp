@@ -19,31 +19,22 @@ std::map<std::string, void*> hookArgs;
 namespace ModInternal {
 
     void registerHookListener(HookListener listener) {
-#if 0
         listeners[listener.hookName].push_back(listener.callback);
-#endif
     }
 
     bool handleHook(std::shared_ptr<HookCall> call) {
-#if 0
         std::string hookName = std::string(call->name);
         for (size_t l = 0; l < listeners[hookName].size(); l++) {
             (listeners[hookName][l])(call);
         }
         return call->cancelled;
-#else
-        return false;
-#endif
     }
 
     void bindHook(std::string name) {
-#if 0
         hookName = name;
-#endif
     }
 
     void initBindHook(int length, ...) {
-#if 0
         if (length > 0) {
             va_list args;
             va_start(args, length);
@@ -53,11 +44,9 @@ namespace ModInternal {
             }
             va_end(args);
         }
-#endif
     }
 
     bool callBindHook(int length, ...) {
-#if 0
         if (length > 0) {
             va_list args;
             va_start(args, length);
@@ -80,9 +69,6 @@ namespace ModInternal {
         hookArgs.clear();
 
         return cancelled;
-#else
-        return false;
-#endif
     }
 }
 
@@ -95,13 +81,10 @@ namespace ModInternal {
 extern "C" {
 
     void bind_hook(char* name) {
-#if 0
         hookName = std::string(name);
-#endif
     }
 
     void init_hook(int length, ...) {
-#if 0
         if (length > 0) {
             va_list args;
             va_start(args, length);
@@ -111,11 +94,9 @@ extern "C" {
             }
             va_end(args);
         }
-#endif
     }
 
     bool call_hook(int length, ...) {
-#if 0
         if (length > 0) {
             va_list args;
             va_start(args, length);
@@ -139,9 +120,6 @@ extern "C" {
         hookArgs.clear();
 
         return cancelled;
-#else
-        return false;
-#endif
     }
 
 }

@@ -179,14 +179,12 @@ extern "C" {
         if (!hashStr.empty())  {
             const auto res = static_cast<Ship::Texture*>(Ship::GlobalCtx2::GetInstance()->GetResourceManager()->LoadResource(hashStr).get());
 
-#if 0
             ModInternal::bindHook(LOAD_TEXTURE);
             ModInternal::initBindHook(2,
                 HookParameter({.name = "path", .parameter = (void*)hashStr.c_str() }),
                 HookParameter({.name = "texture", .parameter = static_cast<void*>(&res->imageData) })
             );
             ModInternal::callBindHook(0);
-#endif
 
             return reinterpret_cast<char*>(res->imageData);
         } else {
@@ -213,14 +211,14 @@ extern "C" {
 
     char* ResourceMgr_LoadTexByName(char* texPath) {
         const auto res = static_cast<Ship::Texture*>(Ship::GlobalCtx2::GetInstance()->GetResourceManager()->LoadResource(texPath).get());
-#if 0
+
         ModInternal::bindHook(LOAD_TEXTURE);
         ModInternal::initBindHook(2,
             HookParameter({ .name = "path", .parameter = (void*)texPath }),
             HookParameter({ .name = "texture", .parameter = static_cast<void*>(&res->imageData) })
         );
         ModInternal::callBindHook(0);
-#endif
+
         return (char*)res->imageData;
     }
 

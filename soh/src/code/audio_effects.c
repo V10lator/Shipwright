@@ -10,8 +10,8 @@ void Audio_SequenceChannelProcessSound(SequenceChannel* channel, s32 recalculate
     s32 i;
 
     if (channel->changes.s.volume || recalculateVolume) {
-        channelVolume = ROUND((channel->volume * (channel->volumeScale * channel->seqPlayer->appliedFadeVolume)) /**
-                              channel->seqPlayer->gameVolume WIIUTODO reenable once modinternal is enabled*/);
+        channelVolume = ROUND((channel->volume * (channel->volumeScale * channel->seqPlayer->appliedFadeVolume)) *
+                              channel->seqPlayer->gameVolume);
         if (channel->seqPlayer->muted && (channel->muteBehavior & 0x20)) {
             channelVolume = channel->seqPlayer->muteVolumeScale * channelVolume;
         }
