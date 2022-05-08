@@ -29,6 +29,10 @@
 #include <iostream>
 
 #ifdef __WIIU__
+#include <padscore/kpad.h>
+#include <padscore/wpad.h>
+
+#include "WiiUGamepad.h"
 #include "WiiUController.h"
 #endif
 
@@ -87,8 +91,13 @@ extern "C" {
             }
         }
 #else
-        // TODO
-        Ship::Window::Controllers[0].push_back(std::make_shared<Ship::WiiUController>(0));
+		KPADInit();
+		WPADEnableURCC(true);
+
+        Ship::Window::Controllers[0].push_back(std::make_shared<Ship::WiiUGamepad>(0));
+        for (int i = 0; i < 4; i++) {
+            Ship::Window::Controllers[0].push_back(std::make_shared<Ship::WiiUController>(i));
+        }
 #endif
 
         *controllerBits = 0;
@@ -269,6 +278,9 @@ namespace Ship {
 
     Window::~Window() {
         SPDLOG_INFO("destruct window");
+#ifdef __WIIU__
+        KPADShutdown();
+#endif
     }
 
     void Window::Init() {

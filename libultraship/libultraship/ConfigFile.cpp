@@ -59,6 +59,9 @@ namespace Ship {
 		(*this)["ARCHIVE"]["Main Archive"] = "oot.otr";
 		(*this)["ARCHIVE"]["Patches Directory"] = "";
 
+#ifdef __WIIU__
+		(*this)["ENHANCEMENT SETTINGS"]["TEXT_SPEED"] = "1";
+#else
 		(*this)["CONTROLLERS"]["CONTROLLER 1"] = "Auto";
 		(*this)["CONTROLLERS"]["CONTROLLER 2"] = "Unplugged";
 		(*this)["CONTROLLERS"]["CONTROLLER 3"] = "Unplugged";
@@ -156,6 +159,7 @@ namespace Ship {
 		(*this)["SDL CONTROLLER 2"]["GUID"] = "";
 		(*this)["SDL CONTROLLER 3"]["GUID"] = "";
 		(*this)["SDL CONTROLLER 4"]["GUID"] = "";
+#endif
 
 		return File.generate(Val);
 	}

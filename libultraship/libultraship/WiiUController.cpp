@@ -4,202 +4,200 @@
 
 #include <padscore/kpad.h>
 #include <padscore/wpad.h>
-#include <vpad/input.h>
 
 namespace Ship {
 	WiiUController::WiiUController(int32_t dwControllerNumber) : Controller(dwControllerNumber) {
-		KPADInit();
-		WPADEnableURCC(true);
-		memset(rumblePattern, 0xFF, 15);
-		LoadBinding();
 	}
 
 	WiiUController::~WiiUController() {
-		KPADShutdown();
 	}
-
-	static bool nsoPad = false;
 
 	void WiiUController::ReadFromSource() {
 		dwPressedButtons = 0;
 		wStickX = 0;
 		wStickY = 0;
 
-		VPADStatus status;
-		VPADReadError vError;
-		VPADRead(VPAD_CHAN_0, &status, 1, &vError);
-
-		// TODO button mappings
-		if (vError == VPAD_READ_SUCCESS) {
-			if (status.hold & VPAD_BUTTON_A)
-				dwPressedButtons |= BTN_A;
-			if (status.hold & VPAD_BUTTON_B)
-				dwPressedButtons |= BTN_B;
-			if (status.hold & VPAD_BUTTON_ZL)
-				dwPressedButtons |= BTN_Z;
-			if (status.hold & VPAD_BUTTON_ZR)
-				dwPressedButtons |= BTN_R;
-			if (status.hold & VPAD_BUTTON_MINUS)
-				dwPressedButtons |= BTN_L;
-			if (status.hold & VPAD_BUTTON_PLUS)
-				dwPressedButtons |= BTN_START;
-			if (status.hold & VPAD_BUTTON_UP)
-				dwPressedButtons |= BTN_DUP;
-			if (status.hold & VPAD_BUTTON_DOWN)
-				dwPressedButtons |= BTN_DDOWN;
-			if (status.hold & VPAD_BUTTON_RIGHT)
-				dwPressedButtons |= BTN_DRIGHT;
-			if (status.hold & VPAD_BUTTON_LEFT)
-				dwPressedButtons |= BTN_DLEFT;
-
-			if (status.hold & VPAD_STICK_R_EMULATION_RIGHT || status.hold & VPAD_BUTTON_X)
-				dwPressedButtons |= BTN_CRIGHT;
-			else if (status.hold & VPAD_STICK_R_EMULATION_LEFT || status.hold & VPAD_BUTTON_Y)
-				dwPressedButtons |= BTN_CLEFT;
-			if (status.hold & VPAD_STICK_R_EMULATION_UP || status.hold & VPAD_BUTTON_L)
-				dwPressedButtons |= BTN_CUP;
-			else if (status.hold & VPAD_STICK_R_EMULATION_DOWN || status.hold & VPAD_BUTTON_R)
-				dwPressedButtons |= BTN_CDOWN;
-
-			wStickX = status.leftStick.x * 84;
-			wStickY = status.leftStick.y * 84;
-
-			// TODO gyro
-		}
-
+		auto config = GlobalCtx2::GetInstance()->GetConfig();
+		WPADChan chan = (WPADChan) GetControllerNumber();
 		KPADStatus kStatus;
-		int32_t kProbe;
 		WPADExtensionType kType;
 
-		for (int i = 0; i < 4; i++) {
-			kProbe = WPADProbe((WPADChan) i, &kType);
+		if (WPADProbe(chan, &kType) != 0) {
+			connected = false;
+			return;
+		}
 
-			if (kProbe)
-				continue;
+		// Reload binding if type changed
+		if (kType != extensionType) {
+			extensionType = kType;
 
-			KPADRead((WPADChan) i, &kStatus, 1);
-
-			switch (kType) {
-				case WPAD_EXT_PRO_CONTROLLER:
-
-					if (kStatus.pro.hold & WPAD_PRO_BUTTON_STICK_R)
-						nsoPad = false;
-					if (kStatus.pro.hold & WPAD_PRO_BUTTON_UP && kStatus.pro.hold & WPAD_PRO_STICK_R_EMULATION_UP)
-						nsoPad = true;
-
-					if (kStatus.pro.hold & WPAD_PRO_BUTTON_A)
-						dwPressedButtons |= BTN_A;
-					if (kStatus.pro.hold & WPAD_PRO_BUTTON_B)
-						dwPressedButtons |= BTN_B;
-					if (kStatus.pro.hold & WPAD_PRO_TRIGGER_ZL)
-						dwPressedButtons |= BTN_Z;
-					if (kStatus.pro.hold & (nsoPad ? WPAD_PRO_TRIGGER_R : WPAD_PRO_TRIGGER_ZR))
-						dwPressedButtons |= BTN_R;
-					if (kStatus.pro.hold & (nsoPad ? WPAD_PRO_TRIGGER_L : WPAD_PRO_BUTTON_MINUS))
-						dwPressedButtons |= BTN_L;
-					if (kStatus.pro.hold & WPAD_PRO_BUTTON_PLUS)
-						dwPressedButtons |= BTN_START;
-					if (kStatus.pro.hold & WPAD_PRO_BUTTON_UP)
-						dwPressedButtons |= BTN_DUP;
-					if (kStatus.pro.hold & WPAD_PRO_BUTTON_DOWN)
-						dwPressedButtons |= BTN_DDOWN;
-					if (kStatus.pro.hold & WPAD_PRO_BUTTON_RIGHT)
-						dwPressedButtons |= BTN_DRIGHT;
-					if (kStatus.pro.hold & WPAD_PRO_BUTTON_LEFT)
-						dwPressedButtons |= BTN_DLEFT;
-
-					if (kStatus.pro.hold & WPAD_PRO_STICK_R_EMULATION_RIGHT || kStatus.pro.hold & WPAD_PRO_BUTTON_X)
-						dwPressedButtons |= BTN_CRIGHT;
-					else if (kStatus.pro.hold & WPAD_PRO_STICK_R_EMULATION_LEFT || kStatus.pro.hold & WPAD_PRO_BUTTON_Y)
-						dwPressedButtons |= BTN_CLEFT;
-					if (kStatus.pro.hold & WPAD_PRO_STICK_R_EMULATION_UP || kStatus.pro.hold & (nsoPad ? 0 : WPAD_PRO_TRIGGER_L))
-						dwPressedButtons |= BTN_CUP;
-					else if (kStatus.pro.hold & WPAD_PRO_STICK_R_EMULATION_DOWN || kStatus.pro.hold & (nsoPad ? 0 : WPAD_PRO_TRIGGER_R))
-						dwPressedButtons |= BTN_CDOWN;
-
-					wStickX += kStatus.pro.leftStick.x * 84;
-					wStickY += kStatus.pro.leftStick.y * 84;
-					break;
-				case WPAD_EXT_CLASSIC:
-				case WPAD_EXT_MPLUS_CLASSIC:
-					if (kStatus.classic.hold & WPAD_CLASSIC_BUTTON_A)
-						dwPressedButtons |= BTN_A;
-					if (kStatus.classic.hold & WPAD_CLASSIC_BUTTON_B)
-						dwPressedButtons |= BTN_B;
-					if (kStatus.classic.hold & WPAD_CLASSIC_BUTTON_L)
-						dwPressedButtons |= BTN_Z;
-					if (kStatus.classic.hold & WPAD_CLASSIC_BUTTON_R)
-						dwPressedButtons |= BTN_R;
-					if (kStatus.classic.hold & WPAD_CLASSIC_BUTTON_MINUS)
-						dwPressedButtons |= BTN_L;
-					if (kStatus.classic.hold & WPAD_CLASSIC_BUTTON_PLUS)
-						dwPressedButtons |= BTN_START;
-					if (kStatus.classic.hold & WPAD_CLASSIC_BUTTON_UP)
-						dwPressedButtons |= BTN_DUP;
-					if (kStatus.classic.hold & WPAD_CLASSIC_BUTTON_DOWN)
-						dwPressedButtons |= BTN_DDOWN;
-					if (kStatus.classic.hold & WPAD_CLASSIC_BUTTON_RIGHT)
-						dwPressedButtons |= BTN_DRIGHT;
-					if (kStatus.classic.hold & WPAD_CLASSIC_BUTTON_LEFT)
-						dwPressedButtons |= BTN_DLEFT;
-
-					if (kStatus.classic.hold & WPAD_CLASSIC_STICK_R_EMULATION_RIGHT || kStatus.classic.hold & WPAD_CLASSIC_BUTTON_X)
-						dwPressedButtons |= BTN_CRIGHT;
-					else if (kStatus.classic.hold & WPAD_CLASSIC_STICK_R_EMULATION_LEFT || kStatus.classic.hold & WPAD_CLASSIC_BUTTON_Y)
-						dwPressedButtons |= BTN_CLEFT;
-					if (kStatus.classic.hold & WPAD_CLASSIC_STICK_R_EMULATION_UP || kStatus.classic.hold & WPAD_CLASSIC_BUTTON_ZL)
-						dwPressedButtons |= BTN_CUP;
-					else if (kStatus.classic.hold & WPAD_CLASSIC_STICK_R_EMULATION_DOWN || kStatus.classic.hold & WPAD_CLASSIC_BUTTON_ZR)
-						dwPressedButtons |= BTN_CDOWN;
-
-					wStickX += kStatus.classic.leftStick.x * 84;
-					wStickY += kStatus.classic.leftStick.y * 84;
-					break;
-				case WPAD_EXT_NUNCHUK:
-				case WPAD_EXT_MPLUS_NUNCHUK:
-					wStickX += kStatus.nunchuck.stick.x * 84;
-					wStickY += kStatus.nunchuck.stick.y * 84;
+			if (!config->has(GetBindingConfSection())) {
+				CreateDefaultBinding();
 			}
 
-			if (kStatus.hold & WPAD_BUTTON_A)
-				dwPressedButtons |= BTN_A;
-			if (kStatus.hold & WPAD_BUTTON_B)
-				dwPressedButtons |= BTN_B;
-			if (kStatus.hold & WPAD_BUTTON_MINUS)
-				dwPressedButtons |= BTN_Z;
-			if (kStatus.hold & WPAD_BUTTON_1)
-				dwPressedButtons |= BTN_R;
-			if (kStatus.hold & WPAD_BUTTON_2)
-				dwPressedButtons |= BTN_L;
-			if (kStatus.hold & WPAD_BUTTON_PLUS)
-				dwPressedButtons |= BTN_START;
-			if (kStatus.hold & WPAD_BUTTON_UP)
-				dwPressedButtons |= BTN_DUP;
-			if (kStatus.hold & WPAD_BUTTON_DOWN)
-				dwPressedButtons |= BTN_DDOWN;
-			if (kStatus.hold & WPAD_BUTTON_RIGHT)
-				dwPressedButtons |= BTN_DRIGHT;
-			if (kStatus.hold & WPAD_BUTTON_LEFT)
-				dwPressedButtons |= BTN_DLEFT;
+			LoadBinding();
+		}
+
+		KPADRead(chan, &kStatus, 1);
+
+		switch (kType) {
+			case WPAD_EXT_PRO_CONTROLLER:
+				for (uint32_t i = WPAD_PRO_BUTTON_UP; i <= WPAD_PRO_STICK_R_EMULATION_UP; i <<= 1) {
+					if (ButtonMapping.contains(i)) {
+						// check if the stick is mapped to an analog stick
+						if ((ButtonMapping[i] == BTN_STICKRIGHT || ButtonMapping[i] == BTN_STICKLEFT) && (i >= WPAD_PRO_STICK_L_EMULATION_LEFT)) {
+							float axis = i >= WPAD_PRO_STICK_R_EMULATION_LEFT ? kStatus.pro.rightStick.x : kStatus.pro.leftStick.x;
+							wStickX = axis * 84;
+						} else if ((ButtonMapping[i] == BTN_STICKDOWN || ButtonMapping[i] == BTN_STICKUP) && (i >= WPAD_PRO_STICK_L_EMULATION_LEFT)) {
+							float axis = i >= WPAD_PRO_STICK_R_EMULATION_LEFT ? kStatus.pro.rightStick.y : kStatus.pro.leftStick.y;
+							wStickY = axis * 84;
+						} else {
+							if (kStatus.pro.hold & i) {
+								dwPressedButtons |= ButtonMapping[i];
+							}
+						}
+					}
+				}
+				break;
+			case WPAD_EXT_CLASSIC:
+			case WPAD_EXT_MPLUS_CLASSIC:
+				for (uint32_t i = WPAD_CLASSIC_BUTTON_UP; i <= WPAD_CLASSIC_STICK_R_EMULATION_UP; i <<= 1) {
+					if (ButtonMapping.contains(i)) {
+						// check if the stick is mapped to an analog stick
+						if ((ButtonMapping[i] == BTN_STICKRIGHT || ButtonMapping[i] == BTN_STICKLEFT) && (i >= WPAD_CLASSIC_STICK_L_EMULATION_LEFT)) {
+							float axis = i >= WPAD_CLASSIC_STICK_R_EMULATION_LEFT ? kStatus.classic.rightStick.x : kStatus.classic.leftStick.x;
+							wStickX = axis * 84;
+						} else if ((ButtonMapping[i] == BTN_STICKDOWN || ButtonMapping[i] == BTN_STICKUP) && (i >= WPAD_CLASSIC_STICK_L_EMULATION_LEFT)) {
+							float axis = i >= WPAD_CLASSIC_STICK_R_EMULATION_LEFT ? kStatus.classic.rightStick.y : kStatus.classic.leftStick.y;
+							wStickY = axis * 84;
+						} else {
+							if (kStatus.classic.hold & i) {
+								dwPressedButtons |= ButtonMapping[i];
+							}
+						}
+					}
+				}
+				break;
+			case WPAD_EXT_NUNCHUK:
+			case WPAD_EXT_MPLUS_NUNCHUK:
+			case WPAD_EXT_CORE:
+				for (uint32_t i = WPAD_BUTTON_LEFT; i <= WPAD_BUTTON_HOME; i <<= 1) {
+					if (ButtonMapping.contains(i)) {
+						if (kStatus.hold & i) {
+							dwPressedButtons |= ButtonMapping[i];
+						}
+					}
+				}
+				wStickX += kStatus.nunchuck.stick.x * 84;
+				wStickY += kStatus.nunchuck.stick.y * 84;
+				break;
 		}
 	}
 
 	void WiiUController::WriteToSource(ControllerCallback* controller) {
-		VPADControlMotor(VPAD_CHAN_0, rumblePattern, controller->rumble ? 120 : 0);
-		for (int i = 0; i < 4; i++)
-			WPADControlMotor((WPADChan) i, (BOOL) controller->rumble);
+		WPADControlMotor((WPADChan) GetControllerNumber(), controller->rumble);
+	}
+
+	void WiiUController::CreateDefaultBinding() {
+        std::string ConfSection = GetBindingConfSection();
+        std::shared_ptr<ConfigFile> pConf = GlobalCtx2::GetInstance()->GetConfig();
+        ConfigFile& Conf = *pConf.get();
+
+		switch (extensionType) {
+			case WPAD_EXT_PRO_CONTROLLER:
+				Conf[ConfSection][STR(BTN_CRIGHT)] = std::to_string(WPAD_PRO_STICK_R_EMULATION_RIGHT);
+				Conf[ConfSection][STR(BTN_CLEFT)] = std::to_string(WPAD_PRO_STICK_R_EMULATION_LEFT);
+				Conf[ConfSection][STR(BTN_CDOWN)] = std::to_string(WPAD_PRO_STICK_R_EMULATION_DOWN);
+				Conf[ConfSection][STR(BTN_CUP)] = std::to_string(WPAD_PRO_STICK_R_EMULATION_UP);
+				Conf[ConfSection][STR(BTN_CRIGHT_2)] = std::to_string(WPAD_PRO_BUTTON_X);
+				Conf[ConfSection][STR(BTN_CLEFT_2)] = std::to_string(WPAD_PRO_BUTTON_Y);
+				Conf[ConfSection][STR(BTN_CDOWN_2)] = std::to_string(WPAD_PRO_TRIGGER_R);
+				Conf[ConfSection][STR(BTN_CUP_2)] = std::to_string(WPAD_PRO_TRIGGER_L);
+				Conf[ConfSection][STR(BTN_R)] = std::to_string(WPAD_PRO_TRIGGER_ZR);
+				Conf[ConfSection][STR(BTN_L)] = std::to_string(WPAD_PRO_BUTTON_MINUS);
+				Conf[ConfSection][STR(BTN_DRIGHT)] = std::to_string(WPAD_PRO_BUTTON_RIGHT);
+				Conf[ConfSection][STR(BTN_DLEFT)] = std::to_string(WPAD_PRO_BUTTON_LEFT);
+				Conf[ConfSection][STR(BTN_DDOWN)] = std::to_string(WPAD_PRO_BUTTON_DOWN);
+				Conf[ConfSection][STR(BTN_DUP)] = std::to_string(WPAD_PRO_BUTTON_UP);
+				Conf[ConfSection][STR(BTN_START)] = std::to_string(WPAD_PRO_BUTTON_PLUS);
+				Conf[ConfSection][STR(BTN_Z)] = std::to_string(WPAD_PRO_TRIGGER_ZL);
+				Conf[ConfSection][STR(BTN_B)] = std::to_string(WPAD_PRO_BUTTON_B);
+				Conf[ConfSection][STR(BTN_A)] = std::to_string(WPAD_PRO_BUTTON_A);
+				Conf[ConfSection][STR(BTN_STICKRIGHT)] = std::to_string(WPAD_PRO_STICK_L_EMULATION_RIGHT);
+				Conf[ConfSection][STR(BTN_STICKLEFT)] = std::to_string(WPAD_PRO_STICK_L_EMULATION_LEFT);
+				Conf[ConfSection][STR(BTN_STICKDOWN)] = std::to_string(WPAD_PRO_STICK_L_EMULATION_DOWN);
+				Conf[ConfSection][STR(BTN_STICKUP)] = std::to_string(WPAD_PRO_STICK_L_EMULATION_UP);
+				break;
+			case WPAD_EXT_CLASSIC:
+			case WPAD_EXT_MPLUS_CLASSIC:
+				Conf[ConfSection][STR(BTN_CRIGHT)] = std::to_string(WPAD_CLASSIC_STICK_R_EMULATION_RIGHT);
+				Conf[ConfSection][STR(BTN_CLEFT)] = std::to_string(WPAD_CLASSIC_STICK_R_EMULATION_LEFT);
+				Conf[ConfSection][STR(BTN_CDOWN)] = std::to_string(WPAD_CLASSIC_STICK_R_EMULATION_DOWN);
+				Conf[ConfSection][STR(BTN_CUP)] = std::to_string(WPAD_CLASSIC_STICK_R_EMULATION_UP);
+				Conf[ConfSection][STR(BTN_CRIGHT_2)] = std::to_string(WPAD_CLASSIC_BUTTON_X);
+				Conf[ConfSection][STR(BTN_CLEFT_2)] = std::to_string(WPAD_CLASSIC_BUTTON_Y);
+				Conf[ConfSection][STR(BTN_CDOWN_2)] = std::to_string(WPAD_CLASSIC_BUTTON_ZR);
+				Conf[ConfSection][STR(BTN_CUP_2)] = std::to_string(WPAD_CLASSIC_BUTTON_ZL);
+				Conf[ConfSection][STR(BTN_R)] = std::to_string(WPAD_CLASSIC_BUTTON_R);
+				Conf[ConfSection][STR(BTN_L)] = std::to_string(WPAD_CLASSIC_BUTTON_MINUS);
+				Conf[ConfSection][STR(BTN_DRIGHT)] = std::to_string(WPAD_CLASSIC_BUTTON_RIGHT);
+				Conf[ConfSection][STR(BTN_DLEFT)] = std::to_string(WPAD_CLASSIC_BUTTON_LEFT);
+				Conf[ConfSection][STR(BTN_DDOWN)] = std::to_string(WPAD_CLASSIC_BUTTON_DOWN);
+				Conf[ConfSection][STR(BTN_DUP)] = std::to_string(WPAD_CLASSIC_BUTTON_UP);
+				Conf[ConfSection][STR(BTN_START)] = std::to_string(WPAD_CLASSIC_BUTTON_PLUS);
+				Conf[ConfSection][STR(BTN_Z)] = std::to_string(WPAD_CLASSIC_BUTTON_L);
+				Conf[ConfSection][STR(BTN_B)] = std::to_string(WPAD_CLASSIC_BUTTON_B);
+				Conf[ConfSection][STR(BTN_A)] = std::to_string(WPAD_CLASSIC_BUTTON_A);
+				Conf[ConfSection][STR(BTN_STICKRIGHT)] = std::to_string(WPAD_CLASSIC_STICK_L_EMULATION_RIGHT);
+				Conf[ConfSection][STR(BTN_STICKLEFT)] = std::to_string(WPAD_CLASSIC_STICK_L_EMULATION_LEFT);
+				Conf[ConfSection][STR(BTN_STICKDOWN)] = std::to_string(WPAD_CLASSIC_STICK_L_EMULATION_DOWN);
+				Conf[ConfSection][STR(BTN_STICKUP)] = std::to_string(WPAD_CLASSIC_STICK_L_EMULATION_UP);
+				break;
+			case WPAD_EXT_NUNCHUK:
+			case WPAD_EXT_MPLUS_NUNCHUK:
+			case WPAD_EXT_CORE:
+				Conf[ConfSection][STR(BTN_R)] = std::to_string(WPAD_BUTTON_1);
+				Conf[ConfSection][STR(BTN_L)] = std::to_string(WPAD_BUTTON_2);
+				Conf[ConfSection][STR(BTN_DRIGHT)] = std::to_string(WPAD_BUTTON_RIGHT);
+				Conf[ConfSection][STR(BTN_DLEFT)] = std::to_string(WPAD_BUTTON_LEFT);
+				Conf[ConfSection][STR(BTN_DDOWN)] = std::to_string(WPAD_BUTTON_DOWN);
+				Conf[ConfSection][STR(BTN_DUP)] = std::to_string(WPAD_BUTTON_UP);
+				Conf[ConfSection][STR(BTN_START)] = std::to_string(WPAD_BUTTON_PLUS);
+				Conf[ConfSection][STR(BTN_Z)] = std::to_string(WPAD_BUTTON_MINUS);
+				Conf[ConfSection][STR(BTN_B)] = std::to_string(WPAD_BUTTON_B);
+				Conf[ConfSection][STR(BTN_A)] = std::to_string(WPAD_BUTTON_A);
+				break;
+		}
+
+        Conf.Save();
+	}
+
+	std::string WiiUController::GetControllerExtension() {
+		switch (extensionType) {
+			case WPAD_EXT_PRO_CONTROLLER:
+				return "ProController";
+			case WPAD_EXT_CLASSIC:
+			case WPAD_EXT_MPLUS_CLASSIC:
+				return "ClassicController";
+			case WPAD_EXT_NUNCHUK:
+			case WPAD_EXT_MPLUS_NUNCHUK:
+			case WPAD_EXT_CORE:
+				return "WiiRemote";
+		}
+
+		return "Controller";
 	}
 
 	std::string WiiUController::GetControllerType() {
-		return "WIIU GAMEPAD";
+		return "WIIU";
 	}
 
 	std::string WiiUController::GetConfSection() {
-		return GetControllerType() + " CONTROLLER " + std::to_string(GetControllerNumber() + 1);
+		return GetControllerType() + " " + GetControllerExtension() + " " + std::to_string(GetControllerNumber() + 1);
 	}
 
 	std::string WiiUController::GetBindingConfSection() {
-		return GetControllerType() + " CONTROLLER BINDING " + std::to_string(GetControllerNumber() + 1);
+		return GetControllerType() + " " + GetControllerExtension() + " BINDING " + std::to_string(GetControllerNumber() + 1);
 	}
 }
 #endif

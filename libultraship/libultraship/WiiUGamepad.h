@@ -3,10 +3,10 @@
 #include <string>
 
 namespace Ship {
-	class WiiUController : public Controller {
+	class WiiUGamepad : public Controller {
 		public:
-			WiiUController(int32_t dwControllerNumber);
-			~WiiUController();
+			WiiUGamepad(int32_t dwControllerNumber);
+			~WiiUGamepad();
 
 			void ReadFromSource();
 			void WriteToSource(ControllerCallback* controller);
@@ -18,13 +18,12 @@ namespace Ship {
 
 		protected:
 			void CreateDefaultBinding();
-			std::string GetControllerExtension();
 			std::string GetControllerType();
 			std::string GetConfSection();
 			std::string GetBindingConfSection();
 
 		private:
 			bool connected = true;
-			int extensionType = -1;
+			uint8_t rumblePattern[15];
 	};
 }

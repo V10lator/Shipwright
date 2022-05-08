@@ -99,6 +99,7 @@ SOURCEFILES_CPP :=	\
 		libultraship/Window.cpp \
 		libultraship/WindowShim.cpp \
 		libultraship/stox.cpp \
+		libultraship/WiiUGamepad.cpp \
 		libultraship/WiiUController.cpp \
 		libultraship/Lib/Fast3D/gfx_wiiu.cpp \
 		libultraship/Lib/Fast3D/gfx_gx2.cpp
