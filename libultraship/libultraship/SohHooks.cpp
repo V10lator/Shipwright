@@ -6,9 +6,7 @@
 #include <iostream>
 
 std::map<std::string, std::vector<HookFunc>> listeners;
-std::string hookName;
-std::map<std::string, void*> initArgs;
-std::map<std::string, void*> hookArgs;
+HookCall call;
 
 /*
 #############################
@@ -22,16 +20,15 @@ namespace ModInternal {
         listeners[listener.hookName].push_back(listener.callback);
     }
 
-    bool handleHook(std::shared_ptr<HookCall> call) {
-        std::string hookName = std::string(call->name);
-        for (size_t l = 0; l < listeners[hookName].size(); l++) {
-            (listeners[hookName][l])(call);
+    bool handleHook(HookCall* call) {
+        for (size_t l = 0; l < listeners[call->name].size(); l++) {
+            (listeners[call->name][l])(call);
         }
         return call->cancelled;
     }
 
     void bindHook(std::string name) {
-        hookName = name;
+        call.name = name;
     }
 
     void initBindHook(int length, ...) {
@@ -40,7 +37,7 @@ namespace ModInternal {
             va_start(args, length);
             for (int i = 0; i < length; i++) {
                 HookParameter currentParam = va_arg(args, struct HookParameter);
-                initArgs[currentParam.name] = currentParam.parameter;
+                call.baseArgs[currentParam.name] = currentParam.parameter;
             }
             va_end(args);
         }
@@ -52,21 +49,17 @@ namespace ModInternal {
             va_start(args, length);
             for (int i = 0; i < length; i++) {
                 HookParameter currentParam = va_arg(args, struct HookParameter);
-                hookArgs[currentParam.name] = currentParam.parameter;
+                call.hookedArgs[currentParam.name] = currentParam.parameter;
             }
             va_end(args);
         }
 
-        HookCall call = {
-            .name = hookName,
-            .baseArgs = initArgs,
-            .hookedArgs = hookArgs
-		};
-        const bool cancelled = handleHook(std::make_shared<HookCall>(call));
 
-        hookName = "";
-        initArgs.clear();
-        hookArgs.clear();
+        const bool cancelled = handleHook(&call);
+
+        call.name = "";
+        call.baseArgs.clear();
+        call.hookedArgs.clear();
 
         return cancelled;
     }
@@ -81,7 +74,7 @@ namespace ModInternal {
 extern "C" {
 
     void bind_hook(char* name) {
-        hookName = std::string(name);
+        call.name = name;
     }
 
     void init_hook(int length, ...) {
@@ -90,7 +83,7 @@ extern "C" {
             va_start(args, length);
             for (int i = 0; i < length; i++) {
                 HookParameter currentParam = va_arg(args, struct HookParameter);
-                initArgs[currentParam.name] = currentParam.parameter;
+                call.baseArgs[currentParam.name] = currentParam.parameter;
             }
             va_end(args);
         }
@@ -102,22 +95,16 @@ extern "C" {
             va_start(args, length);
             for (int i = 0; i < length; i++) {
                 HookParameter currentParam = va_arg(args, struct HookParameter);
-                hookArgs[currentParam.name] = currentParam.parameter;
+                call.hookedArgs[currentParam.name] = currentParam.parameter;
             }
             va_end(args);
         }
 
-        HookCall call = {
-            .name = hookName,
-            .baseArgs = initArgs,
-            .hookedArgs = hookArgs
-        };
+        const bool cancelled = ModInternal::handleHook(&call);
 
-        const bool cancelled = ModInternal::handleHook(std::make_shared<HookCall>(call));
-
-        hookName = "";
-        initArgs.clear();
-        hookArgs.clear();
+        call.name = "";
+        call.baseArgs.clear();
+        call.hookedArgs.clear();
 
         return cancelled;
     }

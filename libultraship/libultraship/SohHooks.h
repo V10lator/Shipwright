@@ -56,7 +56,7 @@ struct HookCall {
     bool cancelled = false;
 };
 
-typedef std::shared_ptr<HookCall> HookEvent;
+typedef HookCall* HookEvent;
 typedef std::function<void(HookEvent)> HookFunc;
 struct HookListener {
     std::string hookName;
