@@ -34,6 +34,7 @@ void BootCommands_Init()
     CVar_RegisterS32("gDpadPauseName", 1);
     CVar_RegisterS32("gDpadOcarinaText", 1);
     CVar_RegisterS32("gDpadShop", 1);
+    CVar_RegisterS32("gFixDungeonMinimapIcon", 1);
 }
 
 //void BootCommands_ParseBootArgs(char* str)
