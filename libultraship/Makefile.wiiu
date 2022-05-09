@@ -59,7 +59,9 @@ SOURCEFILES_CPP :=	\
 		libultraship/Array.cpp \
 		libultraship/ConfigFile.cpp \
 		libultraship/Controller.cpp \
+		libultraship/SohConsole.cpp \
 		libultraship/SohHooks.cpp \
+		libultraship/SohImGuiImpl.cpp \
 		libultraship/Factories/CollisionHeaderFactory.cpp \
 		libultraship/Factories/DisplayListFactory.cpp \
 		libultraship/Factories/MaterialFactory.cpp \
@@ -111,7 +113,7 @@ CFLAGS	:=	-O2 -ffunction-sections \
 		$(MACHDEP)
 
 CFLAGS	+=	$(INCLUDE) -D__WIIU__ -D__WUT__ -DBIGENDIAN \
-		-DNO_SOH_CONSOLE \
+		-DNO_IMGUI \
 		-DSPDLOG_NO_THREAD_ID -DSPDLOG_NO_TLS \
 		-DSTBI_NO_THREAD_LOCALS
 

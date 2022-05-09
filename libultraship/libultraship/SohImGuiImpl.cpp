@@ -12,7 +12,10 @@
 #include "GameSettings.h"
 #include "SohConsole.h"
 #include "SohHooks.h"
+#ifndef NO_IMGUI
 #include "Lib/ImGui/imgui_internal.h"
+#include "Lib/stb/stb_image.h"
+#endif
 #include "GlobalCtx2.h"
 #include "ResourceMgr.h"
 #include "TextureMod.h"
@@ -20,7 +23,6 @@
 #include "Cvar.h"
 #include "Texture.h"
 #include "../Fast3D/gfx_pc.h"
-#include "Lib/stb/stb_image.h"
 #include "Lib/Fast3D/gfx_rendering_api.h"
 #include "Lib/spdlog/include/spdlog/common.h"
 #include "Utils/StringHelper.h"
@@ -52,7 +54,9 @@ std::map<std::string, GameAsset*> DefaultAssets;
 namespace SohImGui {
 
     WindowImpl impl;
+#ifndef NO_IMGUI
     ImGuiIO* io;
+#endif
     Console* console = new Console;
     bool p_open = false;
     bool needs_save = false;
@@ -76,6 +80,7 @@ namespace SohImGui {
     std::map<std::string, std::vector<std::string>> windowCategories;
     std::map<std::string, CustomWindow> customWindows;
 
+#ifndef NO_IMGUI
     void ImGuiWMInit() {
         switch (impl.backend) {
         case Backend::SDL:
@@ -304,10 +309,12 @@ namespace SohImGui {
 
         DefaultAssets[name] = asset;
     }
+#endif
 
     void Init(WindowImpl window_impl) {
         impl = window_impl;
         Game::LoadSettings();
+#ifndef NO_IMGUI
         ImGuiContext* ctx = ImGui::CreateContext();
         ImGui::SetCurrentContext(ctx);
         io = &ImGui::GetIO();
@@ -315,7 +322,9 @@ namespace SohImGui {
         if (UseViewports()) {
             io->ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
         }
+#endif
         console->Init();
+#ifndef NO_IMGUI
         ImGuiWMInit();
         ImGuiBackendInit();
 
@@ -347,6 +356,7 @@ namespace SohImGui {
         ModInternal::registerHookListener({ CONTROLLER_READ, [](const HookEvent ev) {
             pads = static_cast<OSContPad*>(ev->baseArgs["cont_pad"]);
         } });
+#endif
         Game::InitSettings();
     }
 
@@ -355,9 +365,12 @@ namespace SohImGui {
             Game::SaveSettings();
             needs_save = false;
         }
+#ifndef NO_IMGUI
         ImGuiProcessEvent(event);
+#endif
     }
 
+#ifndef NO_IMGUI
 #define BindButton(btn, status) ImGui::Image(GetTextureByID(DefaultAssets[btn]->textureId), ImVec2(16.0f * scale, 16.0f * scale), ImVec2(0, 0), ImVec2(1.0f, 1.0f), ImVec4(255, 255, 255, (status) ? 255 : 0));
 
     void BindAudioSlider(const char* name, const char* key, float defaultValue, SeqPlayers playerId)
@@ -478,9 +491,11 @@ namespace SohImGui {
             }
         }
     }
+#endif
 
     void DrawMainMenuAndCalculateGameSize() {
         console->Update();
+#ifndef NO_IMGUI
         ImGuiBackendNewFrame();
         ImGuiWMNewFrame();
         ImGui::NewFrame();
@@ -783,9 +798,11 @@ namespace SohImGui {
             pos = ImVec2(size.x / 2 - sw / 2, 0);
             size = ImVec2(sw, size.y);
         }
+#endif
     }
 
     void DrawFramebufferAndGameInput() {
+#ifndef NO_IMGUI
         ImVec2 main_pos = ImGui::GetWindowPos();
         ImVec2 size = ImGui::GetContentRegionAvail();
         ImVec2 pos = ImVec2(0, 0);
@@ -853,28 +870,34 @@ namespace SohImGui {
                 ImGui::End();
             }
         }
+#endif
     }
 
     void Render() {
+#ifndef NO_IMGUI
         ImGui::Render();
         ImGuiRenderDrawData(ImGui::GetDrawData());
         if (UseViewports()) {
             ImGui::UpdatePlatformWindows();
             ImGui::RenderPlatformWindowsDefault();
         }
+#endif
     }
 
     void CancelFrame() {
+#ifndef NO_IMGUI
         ImGui::EndFrame();
         if (UseViewports()) {
             ImGui::UpdatePlatformWindows();
         }
+#endif
     }
 
     void BindCmd(const std::string& cmd, CommandEntry entry) {
         console->Commands[cmd] = std::move(entry);
     }
 
+#ifndef NO_IMGUI
     void AddWindow(const std::string& category, const std::string& name, WindowDrawFunc drawFunc) {
         if (customWindows.contains(name)) {
             SPDLOG_ERROR("SohImGui::AddWindow: Attempting to add duplicate window name %s", name.c_str());
@@ -904,4 +927,5 @@ namespace SohImGui {
         return reinterpret_cast<ImTextureID>(id);
 #endif
     }
+#endif
 }

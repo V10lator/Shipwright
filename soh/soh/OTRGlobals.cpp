@@ -73,8 +73,8 @@ extern "C" void InitOTR() {
 
     clearMtx = (uintptr_t)&gMtxClear;
     OTRMessage_Init();
-#ifndef __WIIU__
     DebugConsole_Init();
+#ifndef __WIIU__
     Debug_Init();
 #endif
 }

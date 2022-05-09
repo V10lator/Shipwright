@@ -380,7 +380,6 @@ namespace Ship {
 	}
 
 	bool Archive::LoadPatchMPQs() {
-#ifndef __WIIU__ // currently scans the whole SD card, let's not do that
 		// OTRTODO: We also want to periodically scan the patch directories for new MPQs. When new MPQs are found we will load the contents to fileCache and then copy over to gameResourceAddresses
 		if (PatchesPath.length() > 0) {
 			if (std::filesystem::is_directory(PatchesPath)) {
@@ -394,7 +393,6 @@ namespace Ship {
 				}
 			}
 		}
-#endif
 
 		return true;
 	}

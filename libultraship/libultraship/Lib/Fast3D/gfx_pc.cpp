@@ -2716,9 +2716,9 @@ struct GfxRenderingAPI *gfx_get_current_rendering_api(void) {
 void gfx_start_frame(void) {
     gfx_wapi->handle_events();
     gfx_wapi->get_dimensions(&gfx_current_window_dimensions.width, &gfx_current_window_dimensions.height);
-#ifndef NO_SOH_CONSOLE
+
     SohImGui::DrawMainMenuAndCalculateGameSize();
-#endif
+
     if (gfx_current_dimensions.height == 0) {
         // Avoid division by zero
         gfx_current_dimensions.height = 1;
@@ -2766,10 +2766,8 @@ void gfx_run(Gfx *commands) {
 
     if (!gfx_wapi->start_frame()) {
         dropped_frame = true;
-#ifndef NO_SOH_CONSOLE
         SohImGui::DrawFramebufferAndGameInput();
         SohImGui::CancelFrame();
-#endif
         return;
     }
     dropped_frame = false;
@@ -2799,10 +2797,10 @@ void gfx_run(Gfx *commands) {
             SohUtils::saveEnvironmentVar("framebuffer", std::to_string((uintptr_t)gfx_rapi->get_framebuffer_texture_id(game_framebuffer)));
         }
     }
-#ifndef NO_SOH_CONSOLE
+
     SohImGui::DrawFramebufferAndGameInput();
     SohImGui::Render();
-#endif
+
     double t1 = gfx_wapi->get_time();
     //printf("Process %f %f\n", t1, t1 - t0);
     gfx_rapi->end_frame();

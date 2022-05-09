@@ -45,7 +45,7 @@ protected:
         }
         formatted.push_back('\0');
         const char *msg_output = formatted.data();
-#ifndef NO_SOH_CONSOLE
+#ifndef NO_IMGUI // don't bother logging to the console if it's not displayed
         if (Game::Settings.debug.soh_sink && SohImGui::console->opened)
             SohImGui::console->Append("SoH Logging", priority, "%s", msg_output);
 #endif

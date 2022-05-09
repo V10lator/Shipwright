@@ -20,11 +20,7 @@ extern GlobalContext* gGlobalCtx;
 
 #include "Cvar.h"
 
-#ifndef NO_SOH_CONSOLE
 #define CMD_REGISTER SohImGui::BindCmd
-#else
-#define CMD_REGISTER(...)
-#endif
 
 static bool ActorSpawnHandler(const std::vector<std::string>& args) {
     if ((args.size() != 9) && (args.size() != 3) && (args.size() != 6)) {
@@ -424,7 +420,6 @@ void DebugConsole_Init(void) {
 
 void DebugConsole_LoadCVars()
 {
-#ifndef NO_SOH_CONSOLE
     if (File::Exists("cvars.cfg")) {
         const auto lines = File::ReadAllLines("cvars.cfg");
 
@@ -432,7 +427,6 @@ void DebugConsole_LoadCVars()
             SohImGui::console->Dispatch(line);
         }
     }
-#endif
 }
 
 void DebugConsole_SaveCVars()

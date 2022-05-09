@@ -5,14 +5,15 @@
 #include <string>
 #include <functional>
 
+#ifndef NO_IMGUI
 #include "Lib/ImGui/imgui.h"
 
-#ifndef NO_SOH_CONSOLE
 #define LOG(msg, ...) SohImGui::console->Append("Main", Priority::LOG_LVL, msg, ##__VA_ARGS__)
 #define INFO(msg, ...) SohImGui::console->Append("Main", Priority::INFO_LVL, msg, ##__VA_ARGS__)
 #define WARNING(msg, ...) SohImGui::console->Append("Main", Priority::WARNING_LVL, msg, ##__VA_ARGS__)
 #define ERROR(msg, ...) SohImGui::console->Append("Main", Priority::ERROR_LVL, msg, ##__VA_ARGS__)
 #else
+// don't bother logging to the console if it's not displayed
 #define LOG(msg, ...)
 #define INFO(msg, ...)
 #define WARNING(msg, ...)
@@ -61,12 +62,14 @@ class Console {
 	std::string level_filter = NULLSTR;
 	std::vector<std::string> log_channels = { "Main", "SoH Logging"};
 	std::vector<std::string> priority_filters = { "None", "Info", "Log", "Warning", "Error" };
+#ifndef NO_IMGUI
 	std::vector<ImVec4> priority_colors = {
 		ImVec4(1.0f, 1.0f, 1.0f, 1.0f),
 		ImVec4(0.2f, 1.0f, 0.2f, 1.0f),
 		ImVec4(0.9f, 0.8f, 0.4f, 0.01f),
 		ImVec4(1.0f, 0.2f, 0.2f, 1.0f)
 	};
+#endif
 public:
 	std::map<std::string, std::vector<ConsoleLine>> Log;
 	std::map<std::string, CommandEntry> Commands;
@@ -82,7 +85,9 @@ public:
 	void Init();
 	void Update();
 	void Draw();
+#ifndef NO_IMGUI
 	void Append(const std::string& channel, Priority priority, const char* fmt, ...) IM_FMTARGS(4);
-	void Dispatch(const std::string& line);
 	static int CallbackStub(ImGuiInputTextCallbackData* data);
+#endif
+	void Dispatch(const std::string& line);
 };
