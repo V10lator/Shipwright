@@ -46,9 +46,11 @@ namespace Ship {
             MainPath = "oot.otr";
         }
         PatchesPath = (*Config)["ARCHIVE"]["Patches Directory"];
+#ifndef __WIIU__ // don't load any patches by default on the Wii U
         if (PatchesPath.empty()) {
             PatchesPath = "./";
         }
+#endif
         ResMan = std::make_shared<ResourceMgr>(GlobalCtx2::GetInstance(), MainPath, PatchesPath);
         Win = std::make_shared<Window>(GlobalCtx2::GetInstance());
 

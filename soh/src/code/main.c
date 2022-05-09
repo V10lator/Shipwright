@@ -5,6 +5,7 @@
 
 #ifdef __WIIU__
 #include <stdio.h>
+#include <unistd.h>
 #include <whb/log.h>
 #include <whb/log_udp.h>
 #include <sys/iosupport.h>
@@ -63,6 +64,13 @@ void main(int argc, char** argv)
 
     devoptab_list[STD_OUT] = &dotab_stdout;
     devoptab_list[STD_ERR] = &dotab_stdout;
+
+    // make sure the required folders exist
+    mkdir("/vol/external01/wiiu/", 0755);
+    mkdir("/vol/external01/wiiu/apps/", 0755);
+    mkdir("/vol/external01/wiiu/apps/soh/", 0755);
+
+    chdir("/vol/external01/wiiu/apps/soh/");
 #endif
 
     GameConsole_Init();
