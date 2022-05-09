@@ -60,7 +60,7 @@ namespace Ship {
 		(*this)["ARCHIVE"]["Patches Directory"] = "";
 
 #ifdef __WIIU__
-		(*this)["ENHANCEMENT SETTINGS"]["TEXT_SPEED"] = "1";
+		(*this)["ENHANCEMENT SETTINGS"]["TEXT_SPEED"] = "3";
 #else
 		(*this)["CONTROLLERS"]["CONTROLLER 1"] = "Auto";
 		(*this)["CONTROLLERS"]["CONTROLLER 2"] = "Unplugged";
