@@ -191,12 +191,12 @@ void PadMgr_RumbleStop(PadMgr* padMgr) {
 }
 
 void PadMgr_RumbleReset(PadMgr* padMgr) {
-    padMgr->rumbleOffFrames = 3;
+    padMgr->rumbleOffFrames = 3 / 3;
 }
 
 void PadMgr_RumbleSetSingle(PadMgr* padMgr, u32 ctrlr, u32 rumble) {
     padMgr->rumbleEnable[ctrlr] = rumble;
-    padMgr->rumbleOnFrames = 240;
+    padMgr->rumbleOnFrames = 240 / 3;
 }
 
 void PadMgr_RumbleSet(PadMgr* padMgr, u8* ctrlrRumbles) {
@@ -206,7 +206,7 @@ void PadMgr_RumbleSet(PadMgr* padMgr, u8* ctrlrRumbles) {
         padMgr->rumbleEnable[i] = ctrlrRumbles[i];
     }
 
-    padMgr->rumbleOnFrames = 240;
+    padMgr->rumbleOnFrames = 240 / 3;
 }
 
 void PadMgr_ProcessInputs(PadMgr* padMgr) {
