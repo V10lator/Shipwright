@@ -98,7 +98,7 @@ static std::vector<float *> vbo_pool;
 
 static uint32_t frame_count;
 static float current_noise_scale;
-static FilteringMode current_filter_mode = THREE_POINT;
+static FilteringMode current_filter_mode = LINEAR;
 
 static inline GX2SamplerVar *GX2GetPixelSamplerVar(const GX2PixelShader *shader, const char *name)
 {

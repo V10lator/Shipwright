@@ -8,30 +8,105 @@
 
 #define ROUNDUP(x, align) (((x) + ((align) -1)) & ~((align) -1))
 
-static const uint8_t reg_map[] = {
-    ALU_SRC_0, // SHADER_0
-    _R5, // SHADER_INPUT_1
-    _R6, // SHADER_INPUT_2
-    _R7, // SHADER_INPUT_3
-    _R8, // SHADER_INPUT_4
-    _R9, // SHADER_INPUT_5
-    _R10, // SHADER_INPUT_6
-    _R11, // SHADER_INPUT_7
-    _R12, // SHADER_TEXEL0
-    _R12, // SHADER_TEXEL0A
-    _R13, // SHADER_TEXEL1
-    _R13, // SHADER_TEXEL1A
-    ALU_SRC_1, // SHADER_1
-    _R1, // SHADER_COMBINED
+#define TEXEL_REG _R1
+
+enum {
+    SHADER_TEXINFO0 = SHADER_COMBINED + 1,
+    SHADER_TEXINFO1,
+    
+    // for threepoint filtering
+    SHADER_FILTER_TEX0_0,
+    SHADER_FILTER_TEX0_1,
+    SHADER_FILTER_TEX0_2,
+    SHADER_FILTER_TEX1_0,
+    SHADER_FILTER_TEX1_1,
+    SHADER_FILTER_TEX1_2,
+    SHADER_FILTER_OFF0,
+    SHADER_FILTER_OFF1,
 };
+
+static uint8_t get_reg(struct CCFeatures *cc_features, uint8_t c) {
+    if (c == SHADER_0) {
+        return ALU_SRC_0;
+    }
+    if (c == SHADER_1) {
+        return ALU_SRC_1;
+    }
+
+    if (c == SHADER_COMBINED) {
+        return TEXEL_REG;
+    }
+
+    if (c >= SHADER_INPUT_1 && c <= SHADER_INPUT_7) {
+        return _R(5 + (c - SHADER_INPUT_1));
+    }
+
+    uint8_t input_last = (cc_features->num_inputs + 5) - 1;
+
+    // reuse tex coords for texels
+    if (c == SHADER_TEXEL0 || c == SHADER_TEXEL0A) {
+        return _R1;
+    }
+    if (c == SHADER_TEXEL1 || c == SHADER_TEXEL1A) {
+        return _R2;
+    }
+
+    if (c == SHADER_TEXINFO0) {
+        return _R(input_last + 1);
+    }
+    if (c == SHADER_TEXINFO1) {
+        return _R(input_last + 2);
+    }
+
+    // reuse texinfo for those
+    if (c == SHADER_FILTER_TEX0_0) {
+        return get_reg(cc_features, SHADER_TEXINFO0);
+    }
+    if (c == SHADER_FILTER_TEX1_0) {
+        return get_reg(cc_features, SHADER_TEXINFO1);
+    }
+
+    if (c == SHADER_FILTER_TEX0_1) {
+        return _R(input_last + 3);
+    }
+    if (c == SHADER_FILTER_TEX1_1) {
+        return _R(input_last + 4);
+    }
+
+    if (c == SHADER_FILTER_TEX0_2) {
+        return _R1;
+    }
+    if (c == SHADER_FILTER_TEX1_2) {
+        return _R2;
+    }
+
+    if (c == SHADER_FILTER_OFF0) {
+        return _R(input_last + 5);
+    }
+    if (c == SHADER_FILTER_OFF1) {
+        return _R(input_last + 6);
+    }
+
+    return 0;
+}
+
+static uint8_t get_num_regs(struct CCFeatures *cc_features, BOOL three_point_filtering) {
+    uint8_t input_count = cc_features->num_inputs + 5;
+
+    if (three_point_filtering) {
+        return input_count + 6;
+    }
+
+    return input_count + 2;
+}
 
 #define ADD_INSTR(...) \
     uint64_t tmp[] = {__VA_ARGS__}; \
     memcpy(*alu_ptr, tmp, sizeof(tmp)); \
     *alu_ptr += sizeof(tmp) / sizeof(uint64_t)
 
-static inline void add_tex_clamp_S_T(uint64_t **alu_ptr, uint8_t tex) {
-    uint8_t texinfo_reg = (tex == 0) ? _R14 : _R15;
+static inline void add_tex_clamp_S_T(struct CCFeatures *cc_features, uint64_t **alu_ptr, uint8_t tex) {
+    uint8_t texinfo_reg = get_reg(cc_features, (tex == 0) ? SHADER_TEXINFO0 : SHADER_TEXINFO1);
     uint8_t texcoord_reg = (tex == 0) ? _R1 : _R2;
 
     ADD_INSTR(
@@ -64,8 +139,8 @@ static inline void add_tex_clamp_S_T(uint64_t **alu_ptr, uint8_t tex) {
     );
 }
 
-static inline void add_tex_clamp_S(uint64_t **alu_ptr, uint8_t tex) {
-    uint8_t texinfo_reg = (tex == 0) ? _R14 : _R15;
+static inline void add_tex_clamp_S(struct CCFeatures *cc_features, uint64_t **alu_ptr, uint8_t tex) {
+    uint8_t texinfo_reg = get_reg(cc_features, (tex == 0) ? SHADER_TEXINFO0 : SHADER_TEXINFO1);
     uint8_t texcoord_reg = (tex == 0) ? _R1 : _R2;
 
     ADD_INSTR(
@@ -89,8 +164,8 @@ static inline void add_tex_clamp_S(uint64_t **alu_ptr, uint8_t tex) {
     );
 }
 
-static inline void add_tex_clamp_T(uint64_t **alu_ptr, uint8_t tex) {
-    uint8_t texinfo_reg = (tex == 0) ? _R14 : _R15;
+static inline void add_tex_clamp_T(struct CCFeatures *cc_features, uint64_t **alu_ptr, uint8_t tex) {
+    uint8_t texinfo_reg = get_reg(cc_features, (tex == 0) ? SHADER_TEXINFO0 : SHADER_TEXINFO1);
     uint8_t texcoord_reg = (tex == 0) ? _R1 : _R2;
 
     ADD_INSTR(
@@ -114,57 +189,57 @@ static inline void add_tex_clamp_T(uint64_t **alu_ptr, uint8_t tex) {
     );
 }
 
-static inline void add_mov(uint64_t **alu_ptr, uint8_t src, bool single) {
+static inline void add_mov(struct CCFeatures *cc_features, uint64_t **alu_ptr, uint8_t src, bool single) {
     bool src_alpha = (src == SHADER_TEXEL0A) || (src == SHADER_TEXEL1A);
-    src = reg_map[src];
+    src = get_reg(cc_features, src);
 
     /* texel = src */
     if (single) {
         ADD_INSTR(
-            ALU_MOV(_R1, _w, src, _w)
+            ALU_MOV(TEXEL_REG, _w, src, _w)
             ALU_LAST,
         );
     } else {
         ADD_INSTR(
-            ALU_MOV(_R1, _x, src, src_alpha ? _w :_x),
-            ALU_MOV(_R1, _y, src, src_alpha ? _w :_y),
-            ALU_MOV(_R1, _z, src, src_alpha ? _w :_z)
+            ALU_MOV(TEXEL_REG, _x, src, src_alpha ? _w :_x),
+            ALU_MOV(TEXEL_REG, _y, src, src_alpha ? _w :_y),
+            ALU_MOV(TEXEL_REG, _z, src, src_alpha ? _w :_z)
             ALU_LAST,
         );
     }
 }
 
-static inline void add_mul(uint64_t **alu_ptr, uint8_t src0, uint8_t src1, bool single) {
+static inline void add_mul(struct CCFeatures *cc_features, uint64_t **alu_ptr, uint8_t src0, uint8_t src1, bool single) {
     bool src0_alpha = (src0 == SHADER_TEXEL0A) || (src0 == SHADER_TEXEL1A);
     bool src1_alpha = (src1 == SHADER_TEXEL0A) || (src1 == SHADER_TEXEL1A);
-    src0 = reg_map[src0];
-    src1 = reg_map[src1];
+    src0 = get_reg(cc_features, src0);
+    src1 = get_reg(cc_features, src1);
 
     /* texel = src0 * src1 */
     if (single) {
         ADD_INSTR(
-            ALU_MUL(_R1, _w, src0, _w, src1, _w)
+            ALU_MUL(TEXEL_REG, _w, src0, _w, src1, _w)
             ALU_LAST,
         );
     } else {
         ADD_INSTR(
-            ALU_MUL(_R1, _x, src0, src0_alpha ? _w : _x, src1, src1_alpha ? _w : _x),
-            ALU_MUL(_R1, _y, src0, src0_alpha ? _w : _y, src1, src1_alpha ? _w : _y),
-            ALU_MUL(_R1, _z, src0, src0_alpha ? _w : _z, src1, src1_alpha ? _w : _z)
+            ALU_MUL(TEXEL_REG, _x, src0, src0_alpha ? _w : _x, src1, src1_alpha ? _w : _x),
+            ALU_MUL(TEXEL_REG, _y, src0, src0_alpha ? _w : _y, src1, src1_alpha ? _w : _y),
+            ALU_MUL(TEXEL_REG, _z, src0, src0_alpha ? _w : _z, src1, src1_alpha ? _w : _z)
             ALU_LAST,
         );
     }
 }
 
-static inline void add_mix(uint64_t **alu_ptr, uint8_t src0, uint8_t src1, uint8_t src2, uint8_t src3, bool single) {
+static inline void add_mix(struct CCFeatures *cc_features, uint64_t **alu_ptr, uint8_t src0, uint8_t src1, uint8_t src2, uint8_t src3, bool single) {
     bool src0_alpha = (src0 == SHADER_TEXEL0A) || (src0 == SHADER_TEXEL1A);
     bool src1_alpha = (src1 == SHADER_TEXEL0A) || (src1 == SHADER_TEXEL1A);
     bool src2_alpha = (src2 == SHADER_TEXEL0A) || (src2 == SHADER_TEXEL1A);
     bool src3_alpha = (src3 == SHADER_TEXEL0A) || (src3 == SHADER_TEXEL1A);
-    src0 = reg_map[src0];
-    src1 = reg_map[src1];
-    src2 = reg_map[src2];
-    src3 = reg_map[src3];
+    src0 = get_reg(cc_features, src0);
+    src1 = get_reg(cc_features, src1);
+    src2 = get_reg(cc_features, src2);
+    src3 = get_reg(cc_features, src3);
 
     /* texel = (src0 - src1) * src2 - src3 */
     if (single) {
@@ -172,7 +247,7 @@ static inline void add_mix(uint64_t **alu_ptr, uint8_t src0, uint8_t src1, uint8
             ALU_ADD(__, _w, src0, _w, src1 _NEG, _w)
             ALU_LAST,
 
-            ALU_MULADD(_R1, _w, ALU_SRC_PV, _w, src2, _w, src3, _w)
+            ALU_MULADD(TEXEL_REG, _w, ALU_SRC_PV, _w, src2, _w, src3, _w)
             ALU_LAST,
         );
     } else {
@@ -182,22 +257,21 @@ static inline void add_mix(uint64_t **alu_ptr, uint8_t src0, uint8_t src1, uint8
             ALU_ADD(__, _z, src0, src0_alpha ? _w : _z, src1 _NEG, src1_alpha ? _w : _z)
             ALU_LAST,
 
-            ALU_MULADD(_R1, _x, ALU_SRC_PV, _x, src2, src2_alpha ? _w : _x, src3, src3_alpha ? _w : _x),
-            ALU_MULADD(_R1, _y, ALU_SRC_PV, _y, src2, src2_alpha ? _w : _y, src3, src3_alpha ? _w : _y),
-            ALU_MULADD(_R1, _z, ALU_SRC_PV, _z, src2, src2_alpha ? _w : _z, src3, src3_alpha ? _w : _z)
+            ALU_MULADD(TEXEL_REG, _x, ALU_SRC_PV, _x, src2, src2_alpha ? _w : _x, src3, src3_alpha ? _w : _x),
+            ALU_MULADD(TEXEL_REG, _y, ALU_SRC_PV, _y, src2, src2_alpha ? _w : _y, src3, src3_alpha ? _w : _y),
+            ALU_MULADD(TEXEL_REG, _z, ALU_SRC_PV, _z, src2, src2_alpha ? _w : _z, src3, src3_alpha ? _w : _z)
             ALU_LAST,
         );
     }
 }
 
-static void append_three_point_prep(uint64_t **alu_ptr, uint8_t tex) {
-    uint8_t texinfo_reg = (tex == 0) ? _R14 : _R15;
+static void append_three_point_prep(struct CCFeatures *cc_features, uint64_t **alu_ptr, uint8_t tex) {
     uint8_t texcoord_reg = (tex == 0) ? _R1 : _R2;
-    // TODO optimize gpr usage
-    uint8_t dst_coord0 = (tex == 0) ? _R16 : _R19;
-    uint8_t dst_coord1 = (tex == 0) ? _R17 : _R20;
-    uint8_t dst_coord2 = (tex == 0) ? _R18 : _R21;
-    uint8_t off_reg = (tex == 0) ? _R22 : _R23;
+    uint8_t texinfo_reg = get_reg(cc_features, (tex == 0) ? SHADER_TEXINFO0 : SHADER_TEXINFO1);
+    uint8_t dst_coord0 = get_reg(cc_features, (tex == 0) ? SHADER_FILTER_TEX0_0 : SHADER_FILTER_TEX1_0);
+    uint8_t dst_coord1 = get_reg(cc_features, (tex == 0) ? SHADER_FILTER_TEX0_1 : SHADER_FILTER_TEX1_1);
+    uint8_t dst_coord2 = get_reg(cc_features, (tex == 0) ? SHADER_FILTER_TEX0_2 : SHADER_FILTER_TEX1_2);
+    uint8_t off_reg = get_reg(cc_features, (tex == 0) ? SHADER_FILTER_OFF0 : SHADER_FILTER_OFF1);
 
     ADD_INSTR(
         /* R22.xy = fract(texCoord * texSize - vec2(0.5f)) */
@@ -282,13 +356,12 @@ static void append_three_point_prep(uint64_t **alu_ptr, uint8_t tex) {
     );
 }
 
-static void append_three_point_fini(uint64_t **alu_ptr, uint8_t tex) {
-    uint8_t dst_reg = reg_map[(tex == 0) ? SHADER_TEXEL0 : SHADER_TEXEL1];
-    // TODO optimize gpr usage
-    uint8_t src_tex0 = (tex == 0) ?_R16 : _R19;
-    uint8_t src_tex1 = (tex == 0) ?_R17 : _R20;
-    uint8_t src_tex2 = (tex == 0) ?_R18 : _R21;
-    uint8_t off_reg = (tex == 0) ? _R22 : _R23;
+static void append_three_point_fini(struct CCFeatures *cc_features, uint64_t **alu_ptr, uint8_t tex) {
+    uint8_t dst_reg = get_reg(cc_features, (tex == 0) ? SHADER_TEXEL0 : SHADER_TEXEL1);
+    uint8_t src_tex0 = get_reg(cc_features, (tex == 0) ? SHADER_FILTER_TEX0_0 : SHADER_FILTER_TEX1_0);
+    uint8_t src_tex1 = get_reg(cc_features, (tex == 0) ? SHADER_FILTER_TEX0_1 : SHADER_FILTER_TEX1_1);
+    uint8_t src_tex2 = get_reg(cc_features, (tex == 0) ? SHADER_FILTER_TEX0_2 : SHADER_FILTER_TEX1_2);
+    uint8_t off_reg = get_reg(cc_features, (tex == 0) ? SHADER_FILTER_OFF0 : SHADER_FILTER_OFF1);
 
     ADD_INSTR(
         /* R22.x = abs(R22.x); R22.y = abs(R22.y); */
@@ -327,25 +400,25 @@ static void append_three_point_fini(uint64_t **alu_ptr, uint8_t tex) {
 }
 #undef ADD_INSTR
 
-static void append_tex_clamp(uint64_t **alu_ptr, uint8_t tex, bool s, bool t) {
+static void append_tex_clamp(struct CCFeatures *cc_features, uint64_t **alu_ptr, uint8_t tex, bool s, bool t) {
     if (s && t) {
-        add_tex_clamp_S_T(alu_ptr, tex);
+        add_tex_clamp_S_T(cc_features, alu_ptr, tex);
     } else if (s) {
-        add_tex_clamp_S(alu_ptr, tex);
+        add_tex_clamp_S(cc_features, alu_ptr, tex);
     } else {
-        add_tex_clamp_T(alu_ptr, tex);
+        add_tex_clamp_T(cc_features, alu_ptr, tex);
     }
 }
 
-static void append_formula(uint64_t **alu_ptr, uint8_t c[2][4], bool do_single, bool do_multiply, bool do_mix, bool only_alpha) {
+static void append_formula(struct CCFeatures *cc_features, uint64_t **alu_ptr, uint8_t c[2][4], bool do_single, bool do_multiply, bool do_mix, bool only_alpha) {
     if (do_single) {
-        add_mov(alu_ptr, c[only_alpha][3], only_alpha);
+        add_mov(cc_features, alu_ptr, c[only_alpha][3], only_alpha);
     } else if (do_multiply) {
-        add_mul(alu_ptr, c[only_alpha][0], c[only_alpha][2], only_alpha);
+        add_mul(cc_features, alu_ptr, c[only_alpha][0], c[only_alpha][2], only_alpha);
     } else if (do_mix) {
-        add_mix(alu_ptr, c[only_alpha][0], c[only_alpha][1], c[only_alpha][2], c[only_alpha][1], only_alpha);
+        add_mix(cc_features, alu_ptr, c[only_alpha][0], c[only_alpha][1], c[only_alpha][2], c[only_alpha][1], only_alpha);
     } else {
-        add_mix(alu_ptr, c[only_alpha][0], c[only_alpha][1], c[only_alpha][2], c[only_alpha][3], only_alpha);
+        add_mix(cc_features, alu_ptr, c[only_alpha][0], c[only_alpha][1], c[only_alpha][2], c[only_alpha][3], only_alpha);
     }
 }
 
@@ -429,7 +502,7 @@ static const uint64_t noise_instructions[] = {
     ALU_FLOOR(__, _x, ALU_SRC_PV, _x)
     ALU_LAST,
 
-    ALU_MUL(_R1, _w, _R1, _w, ALU_SRC_PV, _x)
+    ALU_MUL(TEXEL_REG, _w, TEXEL_REG, _w, ALU_SRC_PV, _x)
     ALU_LAST,
 };
 
@@ -483,7 +556,7 @@ static int generatePixelShader(GX2PixelShader *psh, struct CCFeatures *cc_featur
 
         for (int i = 0; i < 2; i++) {
             if (cc_features->used_textures[i] && texclamp[i]) {
-                append_tex_clamp(&cur_buf, i, cc_features->clamp[i][0], cc_features->clamp[i][1]);
+                append_tex_clamp(cc_features, &cur_buf, i, cc_features->clamp[i][0], cc_features->clamp[i][1]);
             }
         }
 
@@ -491,7 +564,7 @@ static int generatePixelShader(GX2PixelShader *psh, struct CCFeatures *cc_featur
         if (three_point_filtering) {
             for (int i = 0; i < 2; i++) {
                 if (cc_features->used_textures[i]) {
-                    append_three_point_prep(&cur_buf, i);
+                    append_three_point_prep(cc_features, &cur_buf, i);
                 }
             }
         }
@@ -508,15 +581,15 @@ static int generatePixelShader(GX2PixelShader *psh, struct CCFeatures *cc_featur
     if (three_point_filtering) {
         for (int i = 0; i < 2; i++) {
             if (cc_features->used_textures[i]) {
-                append_three_point_fini(&cur_buf, i);
+                append_three_point_fini(cc_features, &cur_buf, i);
             }
         }
     }
 
     for (int c = 0; c < (cc_features->opt_2cyc ? 2 : 1); c++) {
-        append_formula(&cur_buf, cc_features->c[c], cc_features->do_single[c][0], cc_features->do_multiply[c][0], cc_features->do_mix[c][0], false);
+        append_formula(cc_features, &cur_buf, cc_features->c[c], cc_features->do_single[c][0], cc_features->do_multiply[c][0], cc_features->do_mix[c][0], false);
         if (cc_features->opt_alpha) {
-            append_formula(&cur_buf, cc_features->c[c], cc_features->do_single[c][1], cc_features->do_multiply[c][1], cc_features->do_mix[c][1], true);
+            append_formula(cc_features, &cur_buf, cc_features->c[c], cc_features->do_single[c][1], cc_features->do_multiply[c][1], cc_features->do_mix[c][1], true);
         }
     }
 
@@ -528,9 +601,9 @@ static int generatePixelShader(GX2PixelShader *psh, struct CCFeatures *cc_featur
             ALU_ADD(__, _z, _R3, _z, _R1 _NEG, _z)
             ALU_LAST,
 
-            ALU_MULADD(_R1, _x, ALU_SRC_PV, _x, _R3, _w, _R1, _x),
-            ALU_MULADD(_R1, _y, ALU_SRC_PV, _y, _R3, _w, _R1, _y),
-            ALU_MULADD(_R1, _z, ALU_SRC_PV, _z, _R3, _w, _R1, _z)
+            ALU_MULADD(TEXEL_REG, _x, ALU_SRC_PV, _x, _R3, _w, TEXEL_REG, _x),
+            ALU_MULADD(TEXEL_REG, _y, ALU_SRC_PV, _y, _R3, _w, TEXEL_REG, _y),
+            ALU_MULADD(TEXEL_REG, _z, ALU_SRC_PV, _z, _R3, _w, TEXEL_REG, _z)
             ALU_LAST,
         );
     }
@@ -538,8 +611,8 @@ static int generatePixelShader(GX2PixelShader *psh, struct CCFeatures *cc_featur
     if (cc_features->opt_texture_edge && cc_features->opt_alpha) {
         ADD_INSTR(
             /* if (texel.a > 0.19) texel.a = 1.0; else discard; */
-            ALU_KILLGT(__, _x, ALU_SRC_LITERAL, _x, _R1, _w),
-            ALU_MOV(_R1, _w, ALU_SRC_1, _x)
+            ALU_KILLGT(__, _x, ALU_SRC_LITERAL, _x, TEXEL_REG, _w),
+            ALU_MOV(TEXEL_REG, _w, ALU_SRC_1, _x)
             ALU_LAST,
             ALU_LITERAL(0x3e428f5c /*0.19f*/),
         );
@@ -561,7 +634,7 @@ static int generatePixelShader(GX2PixelShader *psh, struct CCFeatures *cc_featur
     if (cc_features->opt_grayscale) {
         ADD_INSTR(
             /* texel.r + texel.g + texel.b */
-            ALU_ADD(__, _x, _R1, _x, _R1, _y)
+            ALU_ADD(__, _x, TEXEL_REG, _x, TEXEL_REG, _y)
             ALU_LAST,
 
             ALU_ADD(__, _x, ALU_SRC_PV, _x, _R1, _z)
@@ -578,9 +651,9 @@ static int generatePixelShader(GX2PixelShader *psh, struct CCFeatures *cc_featur
             ALU_MULADD(_R127, _z, _R4, _z, ALU_SRC_PV, _x, _R1 _NEG, _z)
             ALU_LAST,
 
-            ALU_MULADD(_R1, _x, ALU_SRC_PV, _x, _R4, _w, _R1, _x),
-            ALU_MULADD(_R1, _y, ALU_SRC_PV, _y, _R4, _w, _R1, _y),
-            ALU_MULADD(_R1, _z, ALU_SRC_PV, _z, _R4, _w, _R1, _z)
+            ALU_MULADD(TEXEL_REG, _x, ALU_SRC_PV, _x, _R4, _w, TEXEL_REG, _x),
+            ALU_MULADD(TEXEL_REG, _y, ALU_SRC_PV, _y, _R4, _w, TEXEL_REG, _y),
+            ALU_MULADD(TEXEL_REG, _z, ALU_SRC_PV, _z, _R4, _w, TEXEL_REG, _z)
             ALU_LAST,
         );
     }
@@ -589,7 +662,7 @@ static int generatePixelShader(GX2PixelShader *psh, struct CCFeatures *cc_featur
         if (cc_features->opt_alpha_threshold) {
             ADD_INSTR(
                 /* if (texel.a < 8.0 / 256.0) discard; */
-                ALU_KILLGT(__, _x, ALU_SRC_LITERAL, _x, _R1, _w)
+                ALU_KILLGT(__, _x, ALU_SRC_LITERAL, _x, TEXEL_REG, _w)
                 ALU_LAST,
                 ALU_LITERAL(0x3d000000 /*0.03125f*/),
             );
@@ -598,7 +671,7 @@ static int generatePixelShader(GX2PixelShader *psh, struct CCFeatures *cc_featur
         if (cc_features->opt_invisible) {
             ADD_INSTR(
                 /* texel.a = 0.0; */
-                ALU_MOV(_R1, _w, ALU_SRC_0, _x)
+                ALU_MOV(TEXEL_REG, _w, ALU_SRC_0, _x)
                 ALU_LAST,
             );
         }
@@ -622,10 +695,10 @@ static int generatePixelShader(GX2PixelShader *psh, struct CCFeatures *cc_featur
 
     for (int i = 0; i < 2; i++) {
         if (cc_features->used_textures[i] && (texclamp[i] || three_point_filtering)) {
-            uint8_t dst_reg = (i == 0) ? _R14 : _R15;
+            uint8_t dst_reg = get_reg(cc_features, (i == 0) ? SHADER_TEXINFO0 : SHADER_TEXINFO1);
 
             uint64_t texinfo_buf[] = {
-                TEX_GET_TEXTURE_INFO(dst_reg, _x, _y, _m, _m, _R1, _0, _0, _0, _0,  _t(i), _s(i))
+                TEX_GET_TEXTURE_INFO(dst_reg, _x, _y, _m, _m, TEXEL_REG, _0, _0, _0, _0,  _t(i), _s(i))
             };
 
             memcpy(program_buf + cur_tex_offset, texinfo_buf, sizeof(texinfo_buf));
@@ -640,10 +713,9 @@ static int generatePixelShader(GX2PixelShader *psh, struct CCFeatures *cc_featur
             // for three point filtering we need to sample 3 textures here
             if (three_point_filtering) {
                 uint8_t texcoord_reg = (i == 0) ? _R1 : _R2;
-                // TODO optimize gpr usage
-                uint8_t src_tex0 = (i == 0) ? _R16 : _R19;
-                uint8_t src_tex1 = (i == 0) ? _R17 : _R20;
-                uint8_t src_tex2 = (i == 0) ? _R18 : _R21;
+                uint8_t src_tex0 = get_reg(cc_features, (i == 0) ? SHADER_FILTER_TEX0_0 : SHADER_FILTER_TEX1_0);
+                uint8_t src_tex1 = get_reg(cc_features, (i == 0) ? SHADER_FILTER_TEX0_1 : SHADER_FILTER_TEX1_1);
+                uint8_t src_tex2 = get_reg(cc_features, (i == 0) ? SHADER_FILTER_TEX0_2 : SHADER_FILTER_TEX1_2);
 
                 uint64_t tex_buf[] = {
                     TEX_SAMPLE(src_tex0, _x, _y, _z, _w, src_tex0, _x, _y, _0, _x, _t(i), _s(i)),
@@ -655,7 +727,7 @@ static int generatePixelShader(GX2PixelShader *psh, struct CCFeatures *cc_featur
                 cur_tex_offset += sizeof(tex_buf) / sizeof(uint64_t);
             } else {
                 uint8_t texcoord_reg = (i == 0) ? _R1 : _R2;
-                uint8_t dst_reg = reg_map[(i == 0) ? SHADER_TEXEL0 : SHADER_TEXEL1];
+                uint8_t dst_reg = get_reg(cc_features, (i == 0) ? SHADER_TEXEL0 : SHADER_TEXEL1);
 
                 uint64_t tex_buf[] = {
                     TEX_SAMPLE(dst_reg, _x, _y, _z, _w, texcoord_reg, _x, _y, _0, _x, _t(i), _s(i))
@@ -691,15 +763,15 @@ static int generatePixelShader(GX2PixelShader *psh, struct CCFeatures *cc_featur
     }
 
     if (cc_features->opt_alpha) {
-        program_buf[cur_cf_offset++] = EXP_DONE(PIX0, _R1, _x, _y, _z, _w) END_OF_PROGRAM;
+        program_buf[cur_cf_offset++] = EXP_DONE(PIX0, TEXEL_REG, _x, _y, _z, _w) END_OF_PROGRAM;
     } else {
-        program_buf[cur_cf_offset++] = EXP_DONE(PIX0, _R1, _x, _y, _z, _1) END_OF_PROGRAM;
+        program_buf[cur_cf_offset++] = EXP_DONE(PIX0, TEXEL_REG, _x, _y, _z, _1) END_OF_PROGRAM;
     }
 
     // regs
     const uint32_t num_ps_inputs = 4 + cc_features->num_inputs;
 
-    psh->regs.sq_pgm_resources_ps = three_point_filtering ? 24 : 16; // num_gprs
+    psh->regs.sq_pgm_resources_ps = get_num_regs(cc_features, three_point_filtering); // num_gprs
     psh->regs.sq_pgm_exports_ps = 2; // export_mode
     psh->regs.spi_ps_in_control_0 = (num_ps_inputs + 1) // num_interp
         | (1 << 8) // position_ena
