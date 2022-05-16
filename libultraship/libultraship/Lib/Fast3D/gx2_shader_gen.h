@@ -18,7 +18,7 @@ struct ShaderGroup {
     GX2AttribStream attributes[13];
 };
 
-int gx2GenerateShaderGroup(struct ShaderGroup *group, struct CCFeatures *cc_features);
+int gx2GenerateShaderGroup(struct ShaderGroup *group, struct CCFeatures *cc_features, BOOL three_point_filtering);
 
 void gx2FreeShaderGroup(struct ShaderGroup *group);
 

@@ -261,6 +261,7 @@
 #define OP3_INST_MULADD          0x10
 #define OP3_INST_MULADD_D2       0x13
 #define OP3_INST_CNDGT           0x19
+#define OP3_INST_CNDGE           0x1A
 #define OP3_INST_CNDE_INT        0x1C
 /* EXP */
 #define CF_INST_EXP      0x27
@@ -587,6 +588,9 @@
 
 #define ALU_CNDGT(dstGpr, dstChan, src0Sel, src0Chan, src1Sel, src1Chan, src2Sel, src2Chan) \
    ALU_OP3(OP3_INST_CNDGT, dstGpr, dstChan, src0Sel, src0Chan, src1Sel, src1Chan, src2Sel, src2Chan)
+
+#define ALU_CNDGE(dstGpr, dstChan, src0Sel, src0Chan, src1Sel, src1Chan, src2Sel, src2Chan) \
+   ALU_OP3(OP3_INST_CNDGE, dstGpr, dstChan, src0Sel, src0Chan, src1Sel, src1Chan, src2Sel, src2Chan)
 
 #define ALU_CNDE_INT(dstGpr, dstChan, src0Sel, src0Chan, src1Sel, src1Chan, src2Sel, src2Chan) \
    ALU_OP3(OP3_INST_CNDE_INT, dstGpr, dstChan, src0Sel, src0Chan, src1Sel, src1Chan, src2Sel, src2Chan)

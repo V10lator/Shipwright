@@ -98,6 +98,7 @@ static std::vector<float *> vbo_pool;
 
 static uint32_t frame_count;
 static float current_noise_scale;
+static FilteringMode current_filter_mode = THREE_POINT;
 
 static inline GX2SamplerVar *GX2GetPixelSamplerVar(const GX2PixelShader *shader, const char *name)
 {
@@ -182,7 +183,7 @@ static struct ShaderProgram* gfx_gx2_create_and_load_new_shader(uint64_t shader_
     struct ShaderProgram* prg = &shader_program_pool[std::make_pair(shader_id0, shader_id1)];
 
     printf("Generating shader: %016llx-%08x\n", shader_id0, shader_id1);
-    if (gx2GenerateShaderGroup(&prg->group, &cc_features) != 0) {
+    if (gx2GenerateShaderGroup(&prg->group, &cc_features, current_filter_mode == THREE_POINT) != 0) {
         printf("Failed to generate shader\n");
         current_shader_program = nullptr;
         return nullptr;
@@ -327,7 +328,8 @@ static void gfx_gx2_set_sampler_parameters(int tile, bool linear_filter, uint32_
 
     current_tile = tile;
 
-    GX2InitSampler(&tex->sampler, GX2_TEX_CLAMP_MODE_CLAMP, linear_filter ? GX2_TEX_XY_FILTER_MODE_LINEAR : GX2_TEX_XY_FILTER_MODE_POINT);
+    GX2InitSampler(&tex->sampler, GX2_TEX_CLAMP_MODE_CLAMP, 
+        (linear_filter && current_filter_mode == LINEAR) ? GX2_TEX_XY_FILTER_MODE_LINEAR : GX2_TEX_XY_FILTER_MODE_POINT);
     GX2InitSamplerClamping(&tex->sampler, gfx_cm_to_gx2(cms), gfx_cm_to_gx2(cmt), GX2_TEX_CLAMP_MODE_WRAP);
 
     if (current_shader_program) {
@@ -612,7 +614,7 @@ static std::map<std::pair<float, float>, uint16_t> gfx_gx2_get_pixel_depth(int f
 
     for (const auto& c : coordinates) {
         // bug? coordinates sometimes read from oob
-        if ((c.first < 0.0f) || (c.first> (float) main_framebuffer.depth_buffer.surface.width)
+        if ((c.first < 0.0f) || (c.first > (float) main_framebuffer.depth_buffer.surface.width)
             || (c.second < 0.0f) || (c.second > (float) main_framebuffer.depth_buffer.surface.height)) {
             continue;
         }
@@ -643,11 +645,12 @@ static std::map<std::pair<float, float>, uint16_t> gfx_gx2_get_pixel_depth(int f
 }
 
 void gfx_gx2_set_texture_filter(FilteringMode mode) {
-
+    current_filter_mode = mode;
+    gfx_texture_cache_clear();
 }
 
 FilteringMode gfx_gx2_get_texture_filter(void) {
-    return NONE;
+    return current_filter_mode;
 }
 
 struct GfxRenderingAPI gfx_gx2_api = {

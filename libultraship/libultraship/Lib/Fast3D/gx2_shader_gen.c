@@ -30,8 +30,7 @@ static const uint8_t reg_map[] = {
     memcpy(*alu_ptr, tmp, sizeof(tmp)); \
     *alu_ptr += sizeof(tmp) / sizeof(uint64_t)
 
-static inline void add_tex_clamp_S_T(uint64_t **alu_ptr, uint8_t tex)
-{
+static inline void add_tex_clamp_S_T(uint64_t **alu_ptr, uint8_t tex) {
     uint8_t texinfo_reg = (tex == 0) ? _R14 : _R15;
     uint8_t texcoord_reg = (tex == 0) ? _R1 : _R2;
 
@@ -43,7 +42,7 @@ static inline void add_tex_clamp_S_T(uint64_t **alu_ptr, uint8_t tex)
         ALU_INT_TO_FLT(_R127, _y, texinfo_reg, _y) SCL_210
         ALU_LAST,
 
-        /* R127.xy = texSize / 0.5f */
+        /* R127.xy = 0.5f / texSize */
         ALU_RECIP_IEEE(__, _x, _R127, _x) SCL_210
         ALU_LAST,
 
@@ -65,8 +64,7 @@ static inline void add_tex_clamp_S_T(uint64_t **alu_ptr, uint8_t tex)
     );
 }
 
-static inline void add_tex_clamp_S(uint64_t **alu_ptr, uint8_t tex)
-{
+static inline void add_tex_clamp_S(uint64_t **alu_ptr, uint8_t tex) {
     uint8_t texinfo_reg = (tex == 0) ? _R14 : _R15;
     uint8_t texcoord_reg = (tex == 0) ? _R1 : _R2;
 
@@ -75,7 +73,7 @@ static inline void add_tex_clamp_S(uint64_t **alu_ptr, uint8_t tex)
         ALU_INT_TO_FLT(_R127, _x, texinfo_reg, _x) SCL_210
         ALU_LAST,
 
-        /* R127.x = texSize / 0.5f */
+        /* R127.x = 0.5f / texSize */
         ALU_RECIP_IEEE(__, _x, _R127, _x) SCL_210
         ALU_LAST,
 
@@ -91,8 +89,7 @@ static inline void add_tex_clamp_S(uint64_t **alu_ptr, uint8_t tex)
     );
 }
 
-static inline void add_tex_clamp_T(uint64_t **alu_ptr, uint8_t tex)
-{
+static inline void add_tex_clamp_T(uint64_t **alu_ptr, uint8_t tex) {
     uint8_t texinfo_reg = (tex == 0) ? _R14 : _R15;
     uint8_t texcoord_reg = (tex == 0) ? _R1 : _R2;
 
@@ -192,10 +189,145 @@ static inline void add_mix(uint64_t **alu_ptr, uint8_t src0, uint8_t src1, uint8
         );
     }
 }
+
+static void append_three_point_prep(uint64_t **alu_ptr, uint8_t tex) {
+    uint8_t texinfo_reg = (tex == 0) ? _R14 : _R15;
+    uint8_t texcoord_reg = (tex == 0) ? _R1 : _R2;
+    // TODO optimize gpr usage
+    uint8_t dst_coord0 = (tex == 0) ? _R16 : _R19;
+    uint8_t dst_coord1 = (tex == 0) ? _R17 : _R20;
+    uint8_t dst_coord2 = (tex == 0) ? _R18 : _R21;
+    uint8_t off_reg = (tex == 0) ? _R22 : _R23;
+
+    ADD_INSTR(
+        /* R22.xy = fract(texCoord * texSize - vec2(0.5f)) */
+        ALU_INT_TO_FLT(_R126, _x, texinfo_reg, _x) SCL_210
+        ALU_LAST,
+
+        ALU_MULADD(_R127, _x, texcoord_reg, _x, ALU_SRC_PS, _x, ALU_SRC_0_5 _NEG, _x),
+        ALU_INT_TO_FLT(_R126, _y, texinfo_reg, _y) SCL_210
+        ALU_LAST,
+
+        ALU_FRACT(off_reg, _x, ALU_SRC_PV, _x),
+        ALU_MULADD(_R127, _y, texcoord_reg, _y, ALU_SRC_PS, _y, ALU_SRC_0_5 _NEG, _x)
+        ALU_LAST,
+
+        ALU_FRACT(off_reg, _y, ALU_SRC_PV, _y)
+        ALU_LAST,
+
+        /* R22.xy -= step(1.0, R22.x + R22.y) */
+        ALU_ADD(__, _x, off_reg, _x, ALU_SRC_PV, _y),
+        // we need the reciprocal for the divs below, just squeeze this in here to save a few cycles
+        ALU_RECIP_IEEE(_R126, _x, _R126, _x) SCL_210
+        ALU_LAST,
+
+        ALU_ADD(__, _x, ALU_SRC_PV, _x, ALU_SRC_1 _NEG, _x),
+        // we need the reciprocal for the divs below, just squeeze this in here to save a few cycles
+        ALU_RECIP_IEEE(_R126, _y, _R126, _y) SCL_210
+        ALU_LAST,
+
+        ALU_CNDGE(_R127, _z, ALU_SRC_PV, _x, ALU_SRC_1, _x, ALU_SRC_0, _x)
+        ALU_LAST,
+
+        ALU_ADD(off_reg, _x, off_reg, _x, ALU_SRC_PV _NEG, _z),
+        ALU_ADD(off_reg, _y, off_reg, _y, ALU_SRC_PV _NEG, _z)
+        ALU_LAST,
+
+        /* dst_coord0.xy = texCoord - R22.xy / texSize */
+        ALU_MUL_IEEE(__, _x, off_reg, _x, _R126, _x),
+        ALU_MUL_IEEE(__, _y, off_reg, _y, _R126, _y)
+        ALU_LAST,
+
+        ALU_ADD(dst_coord0, _x, texcoord_reg, _x, ALU_SRC_PV _NEG, _x),
+        ALU_ADD(dst_coord0, _y, texcoord_reg, _y, ALU_SRC_PV _NEG, _y)
+        ALU_LAST,
+
+        /* dst_coord1.xy = texCoord - vec2(R22.x - sign(R22.x), R22.y) / texSize */
+        ALU_SETGT(__, _x, off_reg, _x, ALU_SRC_0, _x),
+        ALU_SETGT(__, _y, ALU_SRC_0, _x, off_reg, _x)
+        ALU_LAST,
+
+        ALU_ADD(__, _x, ALU_SRC_PV, _x, ALU_SRC_PV _NEG, _y)
+        ALU_LAST,
+
+        ALU_ADD(__, _x, off_reg, _x, ALU_SRC_PV _NEG, _x)
+        ALU_LAST,
+
+        ALU_MUL_IEEE(__, _x, ALU_SRC_PV, _x, _R126, _x),
+        ALU_MUL_IEEE(__, _y, off_reg, _y, _R126, _y)
+        ALU_LAST,
+
+        ALU_ADD(dst_coord1, _x, texcoord_reg, _x, ALU_SRC_PV _NEG, _x),
+        ALU_ADD(dst_coord1, _y, texcoord_reg, _y, ALU_SRC_PV _NEG, _y)
+        ALU_LAST,
+
+        /* dst_coord2.xy = texCoord - vec2(R22.x, R22.y - sign(R22.y)) / texSize */
+        ALU_SETGT(__, _x, off_reg, _y, ALU_SRC_0, _x),
+        ALU_SETGT(__, _y, ALU_SRC_0, _x, off_reg, _y)
+        ALU_LAST,
+
+        ALU_ADD(__, _x, ALU_SRC_PV, _x, ALU_SRC_PV _NEG, _y)
+        ALU_LAST,
+
+        ALU_ADD(__, _x, off_reg, _y, ALU_SRC_PV _NEG, _x)
+        ALU_LAST,
+
+        ALU_MUL_IEEE(__, _x, off_reg, _x, _R126, _x),
+        ALU_MUL_IEEE(__, _y, ALU_SRC_PV, _x, _R126, _y)
+        ALU_LAST,
+
+        ALU_ADD(dst_coord2, _x, texcoord_reg, _x, ALU_SRC_PV _NEG, _x),
+        ALU_ADD(dst_coord2, _y, texcoord_reg, _y, ALU_SRC_PV _NEG, _y)
+        ALU_LAST,
+    );
+}
+
+static void append_three_point_fini(uint64_t **alu_ptr, uint8_t tex) {
+    uint8_t dst_reg = reg_map[(tex == 0) ? SHADER_TEXEL0 : SHADER_TEXEL1];
+    // TODO optimize gpr usage
+    uint8_t src_tex0 = (tex == 0) ?_R16 : _R19;
+    uint8_t src_tex1 = (tex == 0) ?_R17 : _R20;
+    uint8_t src_tex2 = (tex == 0) ?_R18 : _R21;
+    uint8_t off_reg = (tex == 0) ? _R22 : _R23;
+
+    ADD_INSTR(
+        /* R22.x = abs(R22.x); R22.y = abs(R22.y); */
+        ALU_MAX_DX10(off_reg, _x, off_reg, _x, off_reg _NEG, _x),
+        ALU_MAX_DX10(off_reg, _y, off_reg, _y, off_reg _NEG, _y)
+        ALU_LAST,
+
+        /* c1 - c0 */
+        ALU_ADD(__, _x, src_tex1, _x, src_tex0 _NEG, _x),
+        ALU_ADD(__, _y, src_tex1, _y, src_tex0 _NEG, _y),
+        ALU_ADD(__, _z, src_tex1, _z, src_tex0 _NEG, _z),
+        ALU_ADD(__, _w, src_tex1, _w, src_tex0 _NEG, _w)
+        ALU_LAST,
+
+        /* R22.x * PV + c0 */
+        ALU_MULADD(_R127, _x, off_reg, _x, ALU_SRC_PV, _x, src_tex0, _x),
+        ALU_MULADD(_R127, _y, off_reg, _x, ALU_SRC_PV, _y, src_tex0, _y),
+        ALU_MULADD(_R127, _z, off_reg, _x, ALU_SRC_PV, _z, src_tex0, _z),
+        ALU_MULADD(_R127, _w, off_reg, _x, ALU_SRC_PV, _w, src_tex0, _w)
+        ALU_LAST,
+
+        /* c2 - c0 */
+        ALU_ADD(__, _x, src_tex2, _x, src_tex0 _NEG, _x),
+        ALU_ADD(__, _y, src_tex2, _y, src_tex0 _NEG, _y),
+        ALU_ADD(__, _z, src_tex2, _z, src_tex0 _NEG, _z),
+        ALU_ADD(__, _w, src_tex2, _w, src_tex0 _NEG, _w)
+        ALU_LAST,
+
+        /* R22.y * PV + R127 */
+        ALU_MULADD(dst_reg, _x, off_reg, _y, ALU_SRC_PV, _x, _R127, _x),
+        ALU_MULADD(dst_reg, _y, off_reg, _y, ALU_SRC_PV, _y, _R127, _y),
+        ALU_MULADD(dst_reg, _z, off_reg, _y, ALU_SRC_PV, _z, _R127, _z),
+        ALU_MULADD(dst_reg, _w, off_reg, _y, ALU_SRC_PV, _w, _R127, _w)
+        ALU_LAST,
+    );
+}
 #undef ADD_INSTR
 
-static void append_tex_clamp(uint64_t **alu_ptr, uint8_t tex, bool s, bool t)
-{
+static void append_tex_clamp(uint64_t **alu_ptr, uint8_t tex, bool s, bool t) {
     if (s && t) {
         add_tex_clamp_S_T(alu_ptr, tex);
     } else if (s) {
@@ -317,7 +449,7 @@ static GX2SamplerVar samplerVars[] = {
     cur_buf += sizeof(tmp) / sizeof(uint64_t); \
     } while (0)
 
-static int generatePixelShader(GX2PixelShader *psh, struct CCFeatures *cc_features) {
+static int generatePixelShader(GX2PixelShader *psh, struct CCFeatures *cc_features, BOOL three_point_filtering) {
     static const size_t max_program_buf_size = 512 * sizeof(uint64_t);
     uint64_t *program_buf = memalign(GX2_SHADER_PROGRAM_ALIGNMENT, max_program_buf_size);
     if (!program_buf) {
@@ -340,17 +472,27 @@ static int generatePixelShader(GX2PixelShader *psh, struct CCFeatures *cc_featur
         }
     }
 
+    // the texclamp alu also does threepoint filtering to avoid another alu
     uint32_t texclamp_alu_offset = base_alu_offset;
     uint32_t texclamp_alu_size = 0;
     uint32_t texclamp_alu_cnt = 0;
 
-    if (texclamp[0] || texclamp[1]) {
+    if (texclamp[0] || texclamp[1] || three_point_filtering) {
         // texclamp alu
         cur_buf = program_buf + texclamp_alu_offset;
 
         for (int i = 0; i < 2; i++) {
             if (cc_features->used_textures[i] && texclamp[i]) {
                 append_tex_clamp(&cur_buf, i, cc_features->clamp[i][0], cc_features->clamp[i][1]);
+            }
+        }
+
+        // prepare sampling for three point filtering
+        if (three_point_filtering) {
+            for (int i = 0; i < 2; i++) {
+                if (cc_features->used_textures[i]) {
+                    append_three_point_prep(&cur_buf, i);
+                }
             }
         }
 
@@ -361,6 +503,15 @@ static int generatePixelShader(GX2PixelShader *psh, struct CCFeatures *cc_featur
     // main alu0
     uint32_t main_alu0_offset = texclamp_alu_offset + texclamp_alu_cnt;
     cur_buf = program_buf + main_alu0_offset;
+
+    // finish three point filtering
+    if (three_point_filtering) {
+        for (int i = 0; i < 2; i++) {
+            if (cc_features->used_textures[i]) {
+                append_three_point_fini(&cur_buf, i);
+            }
+        }
+    }
 
     for (int c = 0; c < (cc_features->opt_2cyc ? 2 : 1); c++) {
         append_formula(&cur_buf, cc_features->c[c], cc_features->do_single[c][0], cc_features->do_multiply[c][0], cc_features->do_mix[c][0], false);
@@ -457,14 +608,20 @@ static int generatePixelShader(GX2PixelShader *psh, struct CCFeatures *cc_featur
     const uint32_t main_alu1_cnt = main_alu1_size / sizeof(uint64_t);
 
     // tex
-    const uint32_t num_texinfo = texclamp[0] + texclamp[1];
-    const uint32_t num_textures = cc_features->used_textures[0] + cc_features->used_textures[1];
+    uint32_t num_textures = cc_features->used_textures[0] + cc_features->used_textures[1];
+    uint32_t num_texinfo = texclamp[0] + texclamp[1];
+
+    // for three point filtering we need to get texinfo for all textures and 3 samples per texture
+    if (three_point_filtering) {
+        num_texinfo = num_textures;
+        num_textures *= 3;
+    }
 
     uint32_t texinfo_offset = ROUNDUP(main_alu1_offset + main_alu1_cnt, 16);
     uint32_t cur_tex_offset = texinfo_offset;
 
     for (int i = 0; i < 2; i++) {
-        if (cc_features->used_textures[i] && texclamp[i]) {
+        if (cc_features->used_textures[i] && (texclamp[i] || three_point_filtering)) {
             uint8_t dst_reg = (i == 0) ? _R14 : _R15;
 
             uint64_t texinfo_buf[] = {
@@ -480,15 +637,33 @@ static int generatePixelShader(GX2PixelShader *psh, struct CCFeatures *cc_featur
 
     for (int i = 0; i < 2; i++) {
         if (cc_features->used_textures[i]) {
-            uint8_t texcoord_reg = (i == 0) ? _R1 : _R2;
-            uint8_t dst_reg = reg_map[(i == 0) ? SHADER_TEXEL0 : SHADER_TEXEL1];
+            // for three point filtering we need to sample 3 textures here
+            if (three_point_filtering) {
+                uint8_t texcoord_reg = (i == 0) ? _R1 : _R2;
+                // TODO optimize gpr usage
+                uint8_t src_tex0 = (i == 0) ? _R16 : _R19;
+                uint8_t src_tex1 = (i == 0) ? _R17 : _R20;
+                uint8_t src_tex2 = (i == 0) ? _R18 : _R21;
 
-            uint64_t tex_buf[] = {
-                TEX_SAMPLE(dst_reg, _x, _y, _z, _w, texcoord_reg, _x, _y, _0, _x, _t(i), _s(i))
-            };
+                uint64_t tex_buf[] = {
+                    TEX_SAMPLE(src_tex0, _x, _y, _z, _w, src_tex0, _x, _y, _0, _x, _t(i), _s(i)),
+                    TEX_SAMPLE(src_tex1, _x, _y, _z, _w, src_tex1, _x, _y, _0, _x, _t(i), _s(i)),
+                    TEX_SAMPLE(src_tex2, _x, _y, _z, _w, src_tex2, _x, _y, _0, _x, _t(i), _s(i))
+                };
 
-            memcpy(program_buf + cur_tex_offset, tex_buf, sizeof(tex_buf));
-            cur_tex_offset += sizeof(tex_buf) / sizeof(uint64_t);
+                memcpy(program_buf + cur_tex_offset, tex_buf, sizeof(tex_buf));
+                cur_tex_offset += sizeof(tex_buf) / sizeof(uint64_t);
+            } else {
+                uint8_t texcoord_reg = (i == 0) ? _R1 : _R2;
+                uint8_t dst_reg = reg_map[(i == 0) ? SHADER_TEXEL0 : SHADER_TEXEL1];
+
+                uint64_t tex_buf[] = {
+                    TEX_SAMPLE(dst_reg, _x, _y, _z, _w, texcoord_reg, _x, _y, _0, _x, _t(i), _s(i))
+                };
+
+                memcpy(program_buf + cur_tex_offset, tex_buf, sizeof(tex_buf));
+                cur_tex_offset += sizeof(tex_buf) / sizeof(uint64_t);
+            }
         }
     }
 
@@ -499,8 +674,8 @@ static int generatePixelShader(GX2PixelShader *psh, struct CCFeatures *cc_featur
     // cf
     uint32_t cur_cf_offset = 0;
 
-    // if we use texclamp place those alus first
-    if (texclamp[0] || texclamp[1]) {
+    // if we use texclamp or three point filtering place those alus first
+    if (num_textures > 0 && (texclamp[0] || texclamp[1] || three_point_filtering)) {
         program_buf[cur_cf_offset++] = TEX(texinfo_offset, num_texinfo);
         program_buf[cur_cf_offset++] = ALU(texclamp_alu_offset, texclamp_alu_cnt);
     }
@@ -524,7 +699,7 @@ static int generatePixelShader(GX2PixelShader *psh, struct CCFeatures *cc_featur
     // regs
     const uint32_t num_ps_inputs = 4 + cc_features->num_inputs;
 
-    psh->regs.sq_pgm_resources_ps = 16; // num_gprs
+    psh->regs.sq_pgm_resources_ps = three_point_filtering ? 24 : 16; // num_gprs
     psh->regs.sq_pgm_exports_ps = 2; // export_mode
     psh->regs.spi_ps_in_control_0 = (num_ps_inputs + 1) // num_interp
         | (1 << 8) // position_ena
@@ -669,11 +844,11 @@ static int generateVertexShader(GX2VertexShader *vsh, struct CCFeatures *cc_feat
 }
 #undef ADD_INSTR
 
-int gx2GenerateShaderGroup(struct ShaderGroup *group, struct CCFeatures *cc_features) {
+int gx2GenerateShaderGroup(struct ShaderGroup *group, struct CCFeatures *cc_features, BOOL three_point_filtering) {
     memset(group, 0, sizeof(struct ShaderGroup));
 
     // generate the pixel shader
-    if (generatePixelShader(&group->pixelShader, cc_features) != 0) {
+    if (generatePixelShader(&group->pixelShader, cc_features, three_point_filtering) != 0) {
         gx2FreeShaderGroup(group);
         return -1;
     }
