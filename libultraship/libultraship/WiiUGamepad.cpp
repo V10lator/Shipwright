@@ -20,10 +20,6 @@ namespace Ship {
     }
 
     void WiiUGamepad::ReadFromSource() {
-        dwPressedButtons = 0;
-        wStickX = 0;
-        wStickY = 0;
-
         VPADStatus vStatus;
         VPADReadError vError;
         VPADRead(VPAD_CHAN_0, &vStatus, 1, &vError);
@@ -36,6 +32,10 @@ namespace Ship {
         } else {
             connected = true;
         }
+
+        dwPressedButtons = 0;
+        wStickX = 0;
+        wStickY = 0;
 
         for (uint32_t i = VPAD_BUTTON_SYNC; i <= VPAD_STICK_L_EMULATION_LEFT; i <<= 1) {
             if (ButtonMapping.contains(i)) {

@@ -13,13 +13,10 @@ namespace Ship {
     }
 
     void WiiUController::ReadFromSource() {
-        dwPressedButtons = 0;
-        wStickX = 0;
-        wStickY = 0;
-
         auto config = GlobalCtx2::GetInstance()->GetConfig();
         WPADChan chan = (WPADChan) GetControllerNumber();
         KPADStatus kStatus;
+        KPADError kError;
         WPADExtensionType kType;
 
         if (WPADProbe(chan, &kType) != 0) {
@@ -38,7 +35,14 @@ namespace Ship {
             LoadBinding();
         }
 
-        KPADRead(chan, &kStatus, 1);
+        KPADReadEx(chan, &kStatus, 1, &kError);
+        if (kError != KPAD_ERROR_OK) {
+            return;
+        }
+
+        dwPressedButtons = 0;
+        wStickX = 0;
+        wStickY = 0;
 
         switch (kType) {
             case WPAD_EXT_PRO_CONTROLLER:
