@@ -50,7 +50,6 @@ static uint8_t get_reg(struct CCFeatures *cc_features, uint8_t c) {
         return _R(input_last + 2);
     }
 
-<<<<<<< HEAD
     // reuse texinfo for texels
     if (c == SHADER_TEXINFO0) {
         return _R(input_last + 1);
@@ -86,20 +85,11 @@ static uint8_t get_reg(struct CCFeatures *cc_features, uint8_t c) {
     }
     if (c == SHADER_FILTER_OFF1) {
         return _R(input_last + 8);
-=======
-    // reuse the regs above
-    if (c == SHADER_TEXINFO0) {
-        return get_reg(cc_features, SHADER_TEXEL0);
-    }
-    if (c == SHADER_TEXINFO1) {
-        return get_reg(cc_features, SHADER_TEXEL1);
->>>>>>> 30f50383a1c6553b9664d71d3109432587ccef16
     }
 
     return 0;
 }
 
-<<<<<<< HEAD
 static uint8_t get_num_regs(struct CCFeatures *cc_features, BOOL three_point_filtering) {
     uint8_t input_count = cc_features->num_inputs + 5;
 
@@ -108,16 +98,6 @@ static uint8_t get_num_regs(struct CCFeatures *cc_features, BOOL three_point_fil
     }
 
     return input_count + 2;
-=======
-static uint8_t get_num_regs(struct CCFeatures *cc_features) {
-    uint8_t input_count = cc_features->num_inputs + 5;
-    uint32_t num_textures = cc_features->used_textures[0] + cc_features->used_textures[1];
-
-    // we'll need an additional reg for each texture
-    input_count += num_textures;
-
-    return input_count;
->>>>>>> 30f50383a1c6553b9664d71d3109432587ccef16
 }
 
 #define ADD_INSTR(...) \
@@ -577,7 +557,6 @@ static int generatePixelShader(GX2PixelShader *psh, struct CCFeatures *cc_featur
         for (int i = 0; i < 2; i++) {
             if (cc_features->used_textures[i] && texclamp[i]) {
                 append_tex_clamp(cc_features, &cur_buf, i, cc_features->clamp[i][0], cc_features->clamp[i][1]);
-<<<<<<< HEAD
             }
         }
 
@@ -587,8 +566,6 @@ static int generatePixelShader(GX2PixelShader *psh, struct CCFeatures *cc_featur
                 if (cc_features->used_textures[i]) {
                     append_three_point_prep(cc_features, &cur_buf, i);
                 }
-=======
->>>>>>> 30f50383a1c6553b9664d71d3109432587ccef16
             }
         }
 
@@ -706,25 +683,18 @@ static int generatePixelShader(GX2PixelShader *psh, struct CCFeatures *cc_featur
     // tex
     uint32_t num_textures = cc_features->used_textures[0] + cc_features->used_textures[1];
     uint32_t num_texinfo = texclamp[0] + texclamp[1];
-<<<<<<< HEAD
 
     // for three point filtering we need to get texinfo for all textures and 3 samples per texture
     if (three_point_filtering) {
         num_texinfo = num_textures;
         num_textures *= 3;
     }
-=======
->>>>>>> 30f50383a1c6553b9664d71d3109432587ccef16
 
     uint32_t texinfo_offset = ROUNDUP(main_alu1_offset + main_alu1_cnt, 16);
     uint32_t cur_tex_offset = texinfo_offset;
 
     for (int i = 0; i < 2; i++) {
-<<<<<<< HEAD
         if (cc_features->used_textures[i] && (texclamp[i] || three_point_filtering)) {
-=======
-        if (cc_features->used_textures[i] && texclamp[i]) {
->>>>>>> 30f50383a1c6553b9664d71d3109432587ccef16
             uint8_t dst_reg = get_reg(cc_features, (i == 0) ? SHADER_TEXINFO0 : SHADER_TEXINFO1);
 
             uint64_t texinfo_buf[] = {
@@ -740,17 +710,12 @@ static int generatePixelShader(GX2PixelShader *psh, struct CCFeatures *cc_featur
 
     for (int i = 0; i < 2; i++) {
         if (cc_features->used_textures[i]) {
-<<<<<<< HEAD
             // for three point filtering we need to sample 3 textures here
             if (three_point_filtering) {
                 uint8_t texcoord_reg = (i == 0) ? _R1 : _R2;
                 uint8_t src_tex0 = get_reg(cc_features, (i == 0) ? SHADER_FILTER_TEX0_0 : SHADER_FILTER_TEX1_0);
                 uint8_t src_tex1 = get_reg(cc_features, (i == 0) ? SHADER_FILTER_TEX0_1 : SHADER_FILTER_TEX1_1);
                 uint8_t src_tex2 = get_reg(cc_features, (i == 0) ? SHADER_FILTER_TEX0_2 : SHADER_FILTER_TEX1_2);
-=======
-            uint8_t texcoord_reg = (i == 0) ? _R1 : _R2;
-            uint8_t dst_reg = get_reg(cc_features, (i == 0) ? SHADER_TEXEL0 : SHADER_TEXEL1);
->>>>>>> 30f50383a1c6553b9664d71d3109432587ccef16
 
                 uint64_t tex_buf[] = {
                     TEX_SAMPLE(src_tex0, _x, _y, _z, _w, src_tex0, _x, _y, _0, _x, _t(i), _s(i)),
@@ -806,11 +771,7 @@ static int generatePixelShader(GX2PixelShader *psh, struct CCFeatures *cc_featur
     // regs
     const uint32_t num_ps_inputs = 4 + cc_features->num_inputs;
 
-<<<<<<< HEAD
     psh->regs.sq_pgm_resources_ps = get_num_regs(cc_features, three_point_filtering); // num_gprs
-=======
-    psh->regs.sq_pgm_resources_ps = get_num_regs(cc_features); // num_gprs
->>>>>>> 30f50383a1c6553b9664d71d3109432587ccef16
     psh->regs.sq_pgm_exports_ps = 2; // export_mode
     psh->regs.spi_ps_in_control_0 = (num_ps_inputs + 1) // num_interp
         | (1 << 8) // position_ena
