@@ -281,7 +281,7 @@ namespace Ship {
 	}
 #endif
 
-	std::vector<std::string> Archive::ListFiles(const std::string& searchMask) {
+	std::vector<std::string> Archive::ListFiles(const std::string& searchMask) const {
 #if 1
 		std::vector<std::string> fileList;
 
@@ -337,7 +337,7 @@ namespace Ship {
 #endif
 	}
 
-	bool Archive::HasFile(const std::string& filename) {
+	bool Archive::HasFile(const std::string& filename) const {
 		bool result = false;
 		auto start = std::chrono::steady_clock::now();
 
@@ -356,8 +356,9 @@ namespace Ship {
 		return result;
 	}
 
-	std::string Archive::HashToString(uint64_t hash) {
-		return hashes[hash];
+	const std::string* Archive::HashToString(uint64_t hash) const {
+		auto it = hashes.find(hash);
+		return it != hashes.end() ? &it->second : nullptr;
 	}
 
 	bool Archive::Load(bool enableWriting, bool genCRCMap) {

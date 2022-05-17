@@ -219,7 +219,7 @@ namespace Ship {
 		return ToLoad;
 	}
 
-	std::shared_ptr<Ship::Resource> ResourceMgr::GetCachedFile(std::string FilePath) {
+	std::shared_ptr<Ship::Resource> ResourceMgr::GetCachedFile(const char* FilePath) const {
 		auto resCacheFind = ResourceCache.find(FilePath);
 
 		if (resCacheFind != ResourceCache.end() &&
@@ -231,39 +231,13 @@ namespace Ship {
 			return nullptr;
 	}
 
-	std::shared_ptr<Resource> ResourceMgr::LoadResource(std::string FilePath) {
-#if 1 // This implemenation will check if the file is already in the ResourceCache before allocating a ResourcePromise
-		StringHelper::ReplaceOriginal(FilePath, "\\", "/");
+	std::shared_ptr<Resource> ResourceMgr::LoadResource(const char* FilePath) {
+		auto Res = LoadResourceAsync(FilePath);
 
-		if (StringHelper::StartsWith(FilePath, "__OTR__"))
-			FilePath.erase(0, sizeof("__OTR__") - 1);
+		if (std::holds_alternative<std::shared_ptr<Resource>>(Res))
+			return std::get<std::shared_ptr<Resource>>(Res);
 
-		ResourceLoadMutex.lock();
-		auto resCacheFind = ResourceCache.find(FilePath);
-		if (resCacheFind != ResourceCache.end()) {
-			ResourceLoadMutex.unlock();
-			return resCacheFind->second;
-		}
-
-		std::shared_ptr<ResourcePromise> Promise = std::make_shared<ResourcePromise>();
-
-		std::shared_ptr<File> FileData = LoadFile(FilePath);
-		Promise->file = FileData;
-
-		if (Promise->file->bHasLoadError)
-		{
-			Promise->bHasResourceLoaded = true;
-		}
-		else
-		{
-			Promise->bHasResourceLoaded = false;
-			ResourceLoadQueue.push(Promise);
-			ResourceLoadNotifier.notify_all();
-		}
-		ResourceLoadMutex.unlock();
-#else
-		auto Promise = LoadResourceAsync(FilePath, true);
-#endif
+		auto& Promise = std::get<std::shared_ptr<ResourcePromise>>(Res);
 
 		if (!Promise->bHasResourceLoaded)
 		{
@@ -276,21 +250,18 @@ namespace Ship {
 		return Promise->resource;
 	}
 
-	std::shared_ptr<ResourcePromise> ResourceMgr::LoadResourceAsync(std::string FilePath) {
-		StringHelper::ReplaceOriginal(FilePath, "\\", "/");
-
-		if (StringHelper::StartsWith(FilePath, "__OTR__"))
-			FilePath.erase(0, sizeof("__OTR__") - 1); // FilePath = StringHelper::Split(FilePath, "__OTR__")[1];
-
-		std::shared_ptr<ResourcePromise> Promise = std::make_shared<ResourcePromise>();
+	std::variant<std::shared_ptr<Resource>, std::shared_ptr<ResourcePromise>> ResourceMgr::LoadResourceAsync(const char* FilePath) {
+		if (FilePath[0] == '_' && FilePath[1] == '_' && FilePath[2] == 'O' && FilePath[3] == 'T' && FilePath[4] == 'R' && FilePath[5] == '_' && FilePath[6] == '_')
+			FilePath += 7;
 
 		const std::lock_guard<std::mutex> ResLock(ResourceLoadMutex);
 		auto resCacheFind = ResourceCache.find(FilePath);
 		if (resCacheFind == ResourceCache.end() || resCacheFind->second->isDirty/* || !FileData->bIsLoaded*/) {
 			if (resCacheFind == ResourceCache.end()) {
-				SPDLOG_TRACE("Cache miss on Resource load: {}", FilePath.c_str());
+				SPDLOG_TRACE("Cache miss on Resource load: {}", FilePath);
 			}
 
+			std::shared_ptr<ResourcePromise> Promise = std::make_shared<ResourcePromise>();
 			std::shared_ptr<File> FileData = LoadFile(FilePath);
 			Promise->file = FileData;
 
@@ -304,12 +275,13 @@ namespace Ship {
 				ResourceLoadQueue.push(Promise);
 				ResourceLoadNotifier.notify_all();
 			}
-		} else {
-			Promise->bHasResourceLoaded = true;
-			Promise->resource = resCacheFind->second;
-		}
 
-		return Promise;
+			return Promise;
+		}
+		else
+		{
+			return resCacheFind->second;
+		}
 	}
 
 	std::shared_ptr<std::vector<std::shared_ptr<ResourcePromise>>> ResourceMgr::CacheDirectoryAsync(std::string SearchMask) {
@@ -317,10 +289,15 @@ namespace Ship {
 		auto fileList = OTR->ListFiles(SearchMask);
 
 		for (DWORD i = 0; i < fileList.size(); i++) {
-			auto file = LoadResourceAsync(fileList[i]);
-			if (file != nullptr) {
-				loadedList->push_back(file);
+			auto resource = LoadResourceAsync(fileList.operator[](i).c_str());
+			if (std::holds_alternative<std::shared_ptr<Resource>>(resource))
+			{
+				auto promise = std::make_shared<ResourcePromise>();
+				promise->bHasResourceLoaded = true;
+				promise->resource = std::get<std::shared_ptr<Resource>>(resource);
+				resource = promise;
 			}
+			loadedList->push_back(std::get<std::shared_ptr<ResourcePromise>>(resource));
 		}
 
 		return loadedList;
@@ -370,7 +347,7 @@ namespace Ship {
 		ResourceCache.clear();
 	}
 
-	std::string ResourceMgr::HashToString(uint64_t Hash) {
+	const std::string* ResourceMgr::HashToString(uint64_t Hash) const {
 		return OTR->HashToString(Hash);
 	}
 }

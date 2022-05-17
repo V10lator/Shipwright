@@ -36,7 +36,7 @@
 
 // OTRTODO: fix header files for these
 extern "C" {
-    char* ResourceMgr_GetNameByCRC(uint64_t crc, char* alloc);
+    const char* ResourceMgr_GetNameByCRC(uint64_t crc);
     int32_t* ResourceMgr_LoadMtxByCRC(uint64_t crc);
     Vtx* ResourceMgr_LoadVtxByCRC(uint64_t crc);
     Gfx* ResourceMgr_LoadGfxByCRC(uint64_t crc);
@@ -134,14 +134,14 @@ static struct RDP {
         const uint8_t *addr;
         uint8_t siz;
         uint32_t width;
-        char* otr_path;
+        const char* otr_path;
     } texture_to_load;
     struct {
         const uint8_t *addr;
         uint32_t size_bytes;
         uint32_t full_image_line_size_bytes;
         uint32_t line_size_bytes;
-        char* otr_path;
+        const char* otr_path;
     } loaded_texture[2];
     struct {
         uint8_t fmt;
@@ -1655,11 +1655,11 @@ static void gfx_dp_set_scissor(uint32_t mode, uint32_t ulx, uint32_t uly, uint32
     rdp.viewport_or_scissor_changed = true;
 }
 
-static void gfx_dp_set_texture_image(uint32_t format, uint32_t size, uint32_t width, const void* addr, char* otr_path) {
+static void gfx_dp_set_texture_image(uint32_t format, uint32_t size, uint32_t width, const void* addr, const char* otr_path) {
     rdp.texture_to_load.addr = (const uint8_t*)addr;
     rdp.texture_to_load.siz = size;
     rdp.texture_to_load.width = width;
-    if ( otr_path != nullptr && !strncmp(otr_path, "__OTR__", 7)) otr_path = otr_path + 7;
+    if (otr_path != nullptr && !strncmp(otr_path, "__OTR__", 7)) otr_path = otr_path + 7;
     rdp.texture_to_load.otr_path = otr_path;
 }
 
@@ -2133,7 +2133,7 @@ static void gfx_run_dl(Gfx* cmd) {
     //puts("dl");
     int dummy = 0;
     char dlName[128];
-    char fileName[128];
+    const char* fileName;
 
     Gfx* dListStart = cmd;
     uint64_t ourHash = -1;
